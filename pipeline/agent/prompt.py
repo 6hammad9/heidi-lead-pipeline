@@ -49,6 +49,9 @@ You get the text of pages from the company's own website. Record what those page
   - private_landlord: a company managing its own housing portfolio, not other owners' property.
   - municipal: a housing company owned by the State of Berlin (degewo, Gewobag, GESOBAU,
     HOWOGE, STADT UND LAND, WBM, berlinovo) or a subsidiary of one.
+  - not_property_manager: the company does not manage properties at all, e.g. only real estate
+    brokerage (Makler), caretaker or cleaning services (Hausmeisterservice), construction or a
+    law firm. A broker that also offers property management is NOT this category.
 - software: property management software the company uses, named on the site (for example a
   tenant portal link or a job ad asking for Domus, Immoware24, Wodis Sigma, Immocloud,
   Karthago, Haufe PowerHaus or iX-Haus). The software's name.

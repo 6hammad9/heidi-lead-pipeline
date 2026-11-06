@@ -114,7 +114,15 @@ AGENT_MAX_FETCHES_PER_COMPANY = 4  # pages the agent may request beyond the pref
 AGENT_MAX_SUBMIT_CORRECTIONS = 1  # then invalid claims are nulled and the rest is kept
 AGENT_MAX_COST_PER_COMPANY_USD = 0.05  # Haiku expected ~$0.003/company; stops runaway loops
 AGENT_RUN_BUDGET_USD = 4.00  # all Anthropic spend in the ledger, kept below the €5 credit
-SPEND_LEDGER = DATA_DIR / "anthropic_spend.jsonl"  # append-only, one line per API call
+SPEND_LEDGER = DATA_DIR / "anthropic_spend.jsonl"
+# Researched first (name contains one of these), so a budget stop cuts the least likely leads.
+RESEARCH_PRIORITY_NAME_KEYWORDS = [
+    "verwalt",
+    "property management",
+    "immobilienmanagement",
+    "genossenschaft",
+    "wohnungsbau",
+]  # append-only, one line per API call
 RESEARCH_DIR = INTERIM_DIR / "research"  # one checkpoint per company, per model
 PAGES_DIR = DATA_DIR / "pages"  # page texts exactly as the agent saw them (quote checks)
 

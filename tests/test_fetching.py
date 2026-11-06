@@ -169,6 +169,7 @@ def test_non_html_http_errors_and_robots_give_error_pages(tmp_path: Path) -> Non
             "https://a.de/robots.txt": FakeResponse(body=b"User-agent: *\nDisallow: /no"),
             "https://a.de/doc": FakeResponse(headers={"Content-Type": "application/pdf"}),
             "https://a.de/gone": requests.HTTPError("404", response=FakeResponse(404)),
+            "https://dead.de/robots.txt": requests.ConnectionError("cannot resolve dead.de"),
         }
     )
     f = fetcher(web, tmp_path)
@@ -176,6 +177,7 @@ def test_non_html_http_errors_and_robots_give_error_pages(tmp_path: Path) -> Non
     assert f.fetch("c", "https://a.de/gone").status == 404
     assert f.fetch("c", "https://a.de/no").error == "blocked by robots.txt"
     assert f.fetch("c", "https://a.de/down").error.startswith("request failed")
+    assert f.fetch("c", "https://dead.de/").error.startswith("site unreachable")
 
 
 def test_size_cap_and_truncation(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -197,6 +199,18 @@ def test_prefetch_fetches_homepage_then_keyword_pages(tmp_path: Path) -> None:
     pages = fetcher(web, tmp_path).prefetch(company)
     assert [p.requested_url for p in pages] == [f"https://{SITE}", f"https://{SITE}/impressum"]
     assert pages[1].text == "GF: Anna Müller"
+
+
+def test_prefetch_falls_back_to_site_root_when_listed_page_is_dead(tmp_path: Path) -> None:
+    web = FakeWeb(
+        {
+            f"https://{SITE}/Betrug": requests.HTTPError("404", response=FakeResponse(404)),
+            f"https://{SITE}/": FakeResponse(body=html("<p>Startseite</p>")),
+        }
+    )
+    company = Company(id=SITE, name="HV", website=f"https://{SITE}/Betrug")
+    pages = fetcher(web, tmp_path).prefetch(company)
+    assert [(p.url, p.text) for p in pages] == [(f"https://{SITE}/", "Startseite")]
 
 
 def test_store_lists_pages_once_per_final_url(tmp_path: Path) -> None:

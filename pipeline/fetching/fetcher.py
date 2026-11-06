@@ -19,7 +19,7 @@ from pipeline.fetching.page_store import PageStore
 from pipeline.fetching.robots import RobotsPolicy
 from pipeline.models import Company, Page
 from pipeline.utils.http import HttpClient, RetryableStatusError
-from pipeline.utils.urls import domain_of
+from pipeline.utils.urls import domain_of, normalize_url
 
 log = logging.getLogger(__name__)
 
@@ -52,6 +52,9 @@ class PageFetcher:
         if not company.website:
             return []
         home = self.fetch(company.id, company.website)
+        root = _site_root(company.website)
+        if home.error and normalize_url(root) != normalize_url(company.website):
+            home = self.fetch(company.id, root)  # directories often link a dead subpage
         if home.error:
             return [home]
         links = select_prefetch_links(
@@ -92,6 +95,8 @@ class PageFetcher:
             return "not an http(s) URL"
         if not self.is_public(parts.hostname):
             return "points to a private or local address"
+        if self.robots.unavailable(url):
+            return "site unreachable (robots.txt could not be fetched)"
         if not self.robots.allowed(url):
             return "blocked by robots.txt"
         return None
@@ -113,6 +118,11 @@ class PageFetcher:
             truncated=truncated,
             links=links,
         )
+
+
+def _site_root(url: str) -> str:
+    parts = urlsplit(url)
+    return f"{parts.scheme}://{parts.netloc}/"
 
 
 def _read_capped(resp: requests.Response, max_bytes: int) -> bytes:

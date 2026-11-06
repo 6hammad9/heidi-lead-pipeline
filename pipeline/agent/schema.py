@@ -24,6 +24,7 @@ class BuyerType(StrEnum):
     COOPERATIVE = "cooperative"
     PRIVATE_LANDLORD = "private_landlord"
     MUNICIPAL = "municipal"
+    NOT_PROPERTY_MANAGER = "not_property_manager"  # directory noise: brokers, caretakers, …
 
 
 class _Strict(BaseModel):

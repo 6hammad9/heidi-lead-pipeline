@@ -16,15 +16,22 @@ class RobotsPolicy:
     def __init__(self, client: HttpClient, user_agent: str = config.USER_AGENT) -> None:
         self.client = client
         self.agent_token = user_agent.split("/")[0]
-        self._parsers: dict[str, RobotFileParser | None] = {}  # None = whole host disallowed
+        self._parsers: dict[str, RobotFileParser | None] = {}  # None = host unavailable
 
     def allowed(self, url: str) -> bool:
+        parser = self._parser(url)
+        return parser is not None and parser.can_fetch(self.agent_token, url)
+
+    def unavailable(self, url: str) -> bool:
+        """robots.txt could not be fetched (site down or erroring), so the host is not crawled."""
+        return self._parser(url) is None
+
+    def _parser(self, url: str) -> RobotFileParser | None:
         parts = urlsplit(url)
         origin = f"{parts.scheme}://{parts.netloc}"
         if origin not in self._parsers:
             self._parsers[origin] = self._load(origin)
-        parser = self._parsers[origin]
-        return parser is not None and parser.can_fetch(self.agent_token, url)
+        return self._parsers[origin]
 
     def _load(self, origin: str) -> RobotFileParser | None:
         parser = RobotFileParser()

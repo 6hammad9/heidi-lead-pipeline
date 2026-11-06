@@ -12,6 +12,7 @@ from typing import Literal, Protocol
 
 from pydantic import BaseModel, Field
 
+from pipeline import config
 from pipeline.agent.contracts import SpendRecorder
 from pipeline.agent.schema import ResearchRecord
 from pipeline.models import Company
@@ -63,8 +64,15 @@ def select_companies(
     """
     in_scope = companies if only_ids is None else [c for c in companies if c.id in only_ids]
     missing = [] if only_ids is None else sorted(only_ids - {c.id for c in companies})
-    selected = sorted((c for c in in_scope if _has_own_website(c)), key=lambda c: c.id)
+    selected = sorted((c for c in in_scope if _has_own_website(c)), key=_research_order)
     return selected, len(in_scope) - len(selected), missing
+
+
+def _research_order(company: Company) -> tuple[int, str]:
+    """Likely property managers first, so a budget stop cuts the least relevant companies."""
+    name = company.name.lower()
+    likely = any(keyword in name for keyword in config.RESEARCH_PRIORITY_NAME_KEYWORDS)
+    return (0 if likely else 1, company.id)
 
 
 def _has_own_website(company: Company) -> bool:

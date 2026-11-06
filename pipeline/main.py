@@ -3,14 +3,23 @@
 import argparse
 import logging
 from collections.abc import Callable
+from pathlib import Path
 
+import anthropic
 from dotenv import load_dotenv
 
 from pipeline import config
+from pipeline.agent.ledger import SpendLedger
+from pipeline.agent.research_agent import ResearchAgent
+from pipeline.checkpoint import CheckpointStore
 from pipeline.collectors.google_places import collect_google_places
 from pipeline.collectors.osm import collect_osm
 from pipeline.dedupe import merge_companies
+from pipeline.fetching.fetcher import PageFetcher
+from pipeline.fetching.page_store import PageStore
+from pipeline.fetching.robots import RobotsPolicy
 from pipeline.models import Company
+from pipeline.research_step import run_research
 from pipeline.utils.http import HttpClient
 from pipeline.utils.io import load_companies, save_companies
 from pipeline.utils.logging_setup import setup_logging
@@ -58,9 +67,34 @@ def run_merge(args: argparse.Namespace) -> None:
     )
 
 
+def run_research_step(args: argparse.Namespace) -> None:
+    http = HttpClient()
+    fetcher = PageFetcher(http, PageStore(config.PAGES_DIR), RobotsPolicy(http))
+    ledger = SpendLedger(config.SPEND_LEDGER)
+    agent = ResearchAgent(anthropic.Anthropic(), args.model, fetcher, ledger, effort=args.effort)
+    summary = run_research(
+        load_companies(MERGED_FILE),
+        agent,
+        CheckpointStore(config.RESEARCH_DIR, args.model),
+        ledger,
+        budget_usd=config.AGENT_RUN_BUDGET_USD,
+        reserve_per_company_usd=config.AGENT_MAX_COST_PER_COMPANY_USD,
+        limit=args.limit,
+        only_ids=read_ids(args.ids) if args.ids else None,
+    )
+    log.info("Research summary: %s", summary.model_dump_json())
+
+
+def read_ids(path: Path) -> set[str]:
+    """One company id per line; blank lines and # comments ignored."""
+    lines = path.read_text(encoding="utf-8").splitlines()
+    return {line.strip() for line in lines if line.strip() and not line.startswith("#")}
+
+
 STEPS: dict[str, Callable[[argparse.Namespace], None]] = {
     "collect": run_collect,
     "merge": run_merge,
+    "research": run_research_step,
 }
 
 
@@ -74,6 +108,12 @@ def main() -> None:
         default=list(COLLECTORS),
         help="collectors to run (collect step only)",
     )
+    parser.add_argument("--model", choices=config.MODEL_PRICES, default=config.AGENT_MODEL)
+    parser.add_argument("--effort", default=config.AGENT_EFFORT)
+    parser.add_argument(
+        "--limit", type=int, default=config.BATCH_SIZE, help="companies per research run"
+    )
+    parser.add_argument("--ids", type=Path, help="file of company ids to research (one per line)")
     args = parser.parse_args()
     load_dotenv()
     setup_logging()

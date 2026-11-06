@@ -155,6 +155,13 @@ def test_selection_is_sorted_by_id_whatever_the_input_order() -> None:
     assert ids(selected) == ["a.de", "b.de", "c.de"]
 
 
+def test_likely_property_managers_are_researched_first() -> None:
+    broker = Company(id="a-makler.de", name="A Makler", website="https://a-makler.de")
+    manager = Company(id="z-hv.de", name="Z Immobilienverwaltung", website="https://z-hv.de")
+    selected, _, _ = select_companies([broker, manager], None)
+    assert ids(selected) == ["z-hv.de", "a-makler.de"]
+
+
 def test_only_ids_keeps_requested_companies_and_reports_missing_ids() -> None:
     only = {"c.de", "a.de", "zz-gone.de", "gone.de"}
     selected, skipped, missing = select_companies(sites("a.de", "b.de", "c.de"), only)
