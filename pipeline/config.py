@@ -168,3 +168,16 @@ KPI_TIERS = {
 BONUS_POINTS = {"association": 3, "growth": 3}
 BASE_SCALE_FACTOR = 18.8  # base max 5 × 18.8 = 94, leaving 6 points for bonuses
 LOW_CONFIDENCE_COMPLETENESS = 0.5
+RESIDENTIAL_SHARE_SCORES = {"mainly_residential": 5, "mixed": 3, "mainly_commercial": 1}
+# Buyer-type scale (RULEBOOK → Company-type scoring); not_property_manager is excluded.
+BUYER_TYPE_SCORES = {
+    "third_party_rental": 5,
+    "third_party_weg": 4,
+    "third_party_unclear": 4,
+    "cooperative": 3,
+    "private_landlord": 3,
+    "municipal": 2,
+}
+INTEGRATED_SOFTWARE = ["domus", "immoware24", "wodis", "immocloud"]  # Heidi integrations (E2)
+SOFTWARE_SCORES = {"integrated": 5, "other": 2}
+UNIT_ESTIMATION_MIN_SAMPLE = 3  # companies publishing both values before a ratio is used
