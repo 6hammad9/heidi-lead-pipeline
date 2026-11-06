@@ -3,6 +3,7 @@
 import argparse
 import logging
 from collections.abc import Callable
+from datetime import datetime
 from pathlib import Path
 
 import anthropic
@@ -15,11 +16,14 @@ from pipeline.checkpoint import CheckpointStore
 from pipeline.collectors.google_places import collect_google_places
 from pipeline.collectors.osm import collect_osm
 from pipeline.dedupe import merge_companies
+from pipeline.export.excel import write_workbook
+from pipeline.export.table import KPI_DEFINITIONS, lead_rows, run_log_rows
 from pipeline.fetching.fetcher import PageFetcher
 from pipeline.fetching.page_store import PageStore
 from pipeline.fetching.robots import RobotsPolicy
 from pipeline.models import Company
 from pipeline.research_step import run_research
+from pipeline.scoring import score_all
 from pipeline.utils.http import HttpClient
 from pipeline.utils.io import load_companies, save_companies
 from pipeline.utils.logging_setup import setup_logging
@@ -110,6 +114,15 @@ def run_verify(args: argparse.Namespace) -> None:
         log.info("Not confirmed: %s", failure)
 
 
+def run_export(args: argparse.Namespace) -> None:
+    companies = load_companies(VERIFIED_FILE)
+    scores, model = score_all(companies)
+    run_log = run_log_rows(companies, scores, model, datetime.now())
+    write_workbook(config.OUTPUT_XLSX, lead_rows(companies, scores), KPI_DEFINITIONS, run_log)
+    scored = sum(s.lead_score is not None for s in scores)
+    log.info("Exported %d companies (%d scored) to %s", len(companies), scored, config.OUTPUT_XLSX)
+
+
 def read_ids(path: Path) -> set[str]:
     """One company id per line; blank lines and # comments ignored."""
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -121,6 +134,7 @@ STEPS: dict[str, Callable[[argparse.Namespace], None]] = {
     "merge": run_merge,
     "research": run_research_step,
     "verify": run_verify,
+    "export": run_export,
 }
 
 

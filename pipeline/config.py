@@ -7,6 +7,7 @@ DATA_DIR = ROOT / "data"
 RAW_DIR = DATA_DIR / "raw"
 INTERIM_DIR = DATA_DIR / "interim"
 LOG_DIR = DATA_DIR / "logs"
+OUTPUT_XLSX = ROOT / "output" / "heidi_leads_berlin.xlsx"
 
 # HTTP
 USER_AGENT = "HeidiLeadResearch/0.1 (B2B lead research case study)"

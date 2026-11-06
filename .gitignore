@@ -5,3 +5,4 @@ __pycache__/
 .ruff_cache/
 # Collected data contains personal data (managing directors, contacts): keep out of git.
 data/
+output/
