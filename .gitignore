@@ -1,0 +1,7 @@
+.env
+.venv/
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+# Collected data contains personal data (managing directors, contacts): keep out of git.
+data/
