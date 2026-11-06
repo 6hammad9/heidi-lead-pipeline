@@ -201,13 +201,32 @@ the whole market.
 1. **Broad list, target 300+ companies** — basic data (name, website,
    address, type) with KPIs filled automatically where possible.
    Shows the automation, which is the point of the AI Agent Builder role.
-2. **Verified top tier, ~40–60 companies** — data checked by hand,
-   named contacts researched (bonus task).
+2. **Top tier, ~40–60 companies** — highest lead scores; their contacts come from the agent
+   like everyone else's. A human spot-check of a random sample measures accuracy for the
+   write-up; it is evaluation, not a pipeline step.
 
 ## Pipeline (decided 2026-11-06)
 
 Principle: **LLM where judgement is needed, code where exactness is
 needed.** The LLM never calculates scores.
+
+### Automation principle (decided 2026-11-06, after user review)
+
+A run has **no manual steps**. Building the system (with Claude Code) is development; the
+system itself must run without Claude Code and without a person.
+
+- **One trigger:** `python -m pipeline.main all` runs collect → merge → research → verify →
+  score → export (straight into the Google Sheet; Excel file as fallback).
+- **Idempotent and incremental:** finished companies are checkpointed and skipped; Google is not
+  re-queried unless asked; re-runs research only new companies and refresh the same sheet link.
+  Can be scheduled (e.g. weekly).
+- **Automatic quality gate instead of a human batch review:** after the first 25 researched
+  companies the run checks verified-quote rate, unknown rate and cost per company against limits
+  in config; outside the limits it stops itself and reports why, before spending the budget.
+- **Contacts come from the agent** (Impressum/team pages), not from manual research.
+- **Run report:** a "Run log" tab with counts, cost, verification rate and failures per run.
+- **Human by design, outside the run:** the one-off accuracy evaluation (10 hand-checked
+  companies) that measures the agent before it is trusted, and optional spot checks.
 
 ```
 1. Collect   (code)  Google Places (breadth) + OpenStreetMap
@@ -263,15 +282,16 @@ Consequences:
   price step.
 - **No agent run for companies without a website** — kept on the list,
   flagged low confidence.
-- **Top 40–60 verification and contacts:** done in Claude Code with
-  manual review (no API cost); described as "verified with AI assistance".
+- **Contacts:** extracted by the agent itself (superseded the earlier plan of manual
+  top-tier research in Claude Code — see Automation principle).
 - **Limits:** €5 prepaid credit = hard cap. `AGENT_RUN_BUDGET_USD = 4.00`
   in code: the run sums actual cost from API usage and stops cleanly,
   keeping a reserve. Full run starts only after measured cost per company
   confirms it fits.
 - Check live prices (incl. web search) before relying on these numbers.
 - **Robustness:** checkpoint every company's result to disk as it
-  finishes; run in batches of ~50, review the first batch before the rest.
+  finishes; the automatic quality gate (see Automation principle) replaces a manual review
+  of the first batch.
 - **Access:** respect robots.txt and rate limits; sites that block
   automated access are skipped and noted, never worked around (E11).
 
