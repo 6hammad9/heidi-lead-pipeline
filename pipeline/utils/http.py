@@ -27,6 +27,13 @@ class RetryableStatusError(Exception):
         self.body = body
 
 
+DEFAULT_RETRY_ON: tuple[type[Exception], ...] = (
+    requests.ConnectionError,
+    requests.Timeout,
+    RetryableStatusError,
+)
+
+
 class HttpClient:
     def __init__(
         self,
@@ -48,13 +55,19 @@ class HttpClient:
     def post(self, url: str, **kwargs) -> requests.Response:
         return self.request("POST", url, **kwargs)
 
-    def request(self, method: str, url: str, **kwargs) -> requests.Response:
+    def request(
+        self,
+        method: str,
+        url: str,
+        *,
+        retry_on: tuple[type[Exception], ...] = DEFAULT_RETRY_ON,
+        **kwargs,
+    ) -> requests.Response:
+        """retry_on: callers of billed APIs narrow it to errors that are certainly not billed."""
         retrying = Retrying(
             stop=stop_after_attempt(self.max_attempts),
             wait=wait_exponential(multiplier=2, max=30),
-            retry=retry_if_exception_type(
-                (requests.ConnectionError, requests.Timeout, RetryableStatusError)
-            ),
+            retry=retry_if_exception_type(retry_on),
             before_sleep=before_sleep_log(log, logging.WARNING),
             reraise=True,
         )

@@ -29,9 +29,16 @@ OVERPASS_NAME_PATTERN = (
 # Google Places API (New), Text Search. Used for discovery; stored data comes from company sites.
 GOOGLE_PLACES_TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
 GOOGLE_PLACES_QUERIES = ["Hausverwaltung"]
-# Per calendar month across all runs (earlier runs counted from data/raw/). Every result page
-# is billed; free quota is 1,000/month, the margin absorbs timeout retries Google may also bill.
+# Two phases: a free exploration (IDs-only field mask, "Text Search Essentials (IDs Only)",
+# unlimited) finds cells that fit in one query; only those are searched with the billed
+# Enterprise mask (website/phone).
+# Billed requests per calendar month across all runs (earlier runs counted from data/raw/).
+# Enterprise free quota is 1,000/month, the margin absorbs timeout retries Google may also bill.
 GOOGLE_PLACES_MAX_REQUESTS = 900
+GOOGLE_PLACES_MAX_FREE_REQUESTS = 3000  # per run; free, only a guard against runaway splitting
+# Env var: "1" = explore and log the plan only, zero billed requests. Read when the collector
+# runs (never at import), so a value from .env or the shell always takes effect.
+GOOGLE_PLACES_DRY_RUN_ENV = "GOOGLE_PLACES_DRY_RUN"
 BERLIN_BBOX = {"low": (52.3382, 13.0883), "high": (52.6755, 13.7611)}  # (lat, lng)
 GOOGLE_PLACES_MIN_CELL_DEGREES = 0.005  # ~550 m; stop splitting below this
 GOOGLE_PLACES_PAGE_SIZE = 20  # API maximum; fewer pages = fewer billed requests

@@ -1,6 +1,12 @@
 import pytest
 
-from pipeline.utils.urls import company_id, domain_of, is_platform_domain, normalize_url
+from pipeline.utils.urls import (
+    company_id,
+    domain_of,
+    is_platform_domain,
+    is_same_site,
+    normalize_url,
+)
 
 
 @pytest.mark.parametrize(
@@ -18,9 +24,36 @@ def test_normalize_url(raw: str, expected: str) -> None:
     assert normalize_url(raw) == expected
 
 
-@pytest.mark.parametrize("raw", [None, "", "   ", "localhost", "not a url"])
+@pytest.mark.parametrize(
+    "raw",
+    [
+        None,
+        "",
+        "   ",
+        "localhost",
+        "not a url",
+        "foo bar.de",
+        "mailto:info@hv-mueller.de",
+        "tel:+493012345",
+        "javascript:void(0)",
+        "ftp://hv-mueller.de/file",
+        "https://user:pass@hv-mueller.de",
+        "https://evil.com@hv-mueller.de",
+    ],
+)
 def test_normalize_url_rejects_invalid(raw: str | None) -> None:
     assert normalize_url(raw) is None
+
+
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("müller-verwaltung.de", "https://müller-verwaltung.de"),
+        ("hv-mueller.de:8080/kontakt", "https://hv-mueller.de/kontakt"),
+    ],
+)
+def test_normalize_url_keeps_umlaut_domains_and_drops_port(raw: str, expected: str) -> None:
+    assert normalize_url(raw) == expected
 
 
 def test_domain_of_ignores_www_scheme_and_path() -> None:
@@ -40,6 +73,23 @@ def test_domain_of_ignores_www_scheme_and_path() -> None:
 )
 def test_is_platform_domain(domain: str, expected: bool) -> None:
     assert is_platform_domain(domain) is expected
+
+
+@pytest.mark.parametrize(
+    ("url", "expected"),
+    [
+        ("https://hv-mueller.de/impressum", True),
+        ("http://www.hv-mueller.de/team/", True),
+        ("https://karriere.hv-mueller.de/jobs", True),
+        ("https://evil-hv-mueller.de/", False),
+        ("https://hv-mueller.de.evil.com/", False),
+        ("https://facebook.com/hv-mueller.de", False),
+        ("mailto:info@hv-mueller.de", False),
+        (None, False),
+    ],
+)
+def test_is_same_site(url: str | None, expected: bool) -> None:
+    assert is_same_site(url, "hv-mueller.de") is expected
 
 
 def test_company_id_uses_own_domain() -> None:

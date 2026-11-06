@@ -13,7 +13,8 @@ _companies = TypeAdapter(list[Company])
 
 def write_raw(raw_dir: Path, source: str, payload: object) -> Path:
     raw_dir.mkdir(parents=True, exist_ok=True)
-    path = raw_dir / f"{source}_{datetime.now():%Y%m%d-%H%M%S}.json"
+    # Microseconds: two runs finishing in the same second must not collide (paid data is lost).
+    path = raw_dir / f"{source}_{datetime.now():%Y%m%d-%H%M%S-%f}.json"
     with path.open("x", encoding="utf-8") as f:  # "x": never overwrite raw data
         json.dump(payload, f, ensure_ascii=False, indent=2)
     return path
