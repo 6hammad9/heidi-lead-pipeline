@@ -32,7 +32,16 @@ def run_collect(args: argparse.Namespace) -> None:
         except Exception:
             log.exception("Collector %s failed, continuing with the others", name)
             continue
-        save_companies(config.INTERIM_DIR / f"collected_{name}.json", companies)
+        save_collected(name, companies)
+
+
+def save_collected(name: str, companies: list[Company]) -> None:
+    """An empty result (dry run, outage) must not wipe an earlier real collection."""
+    path = config.INTERIM_DIR / f"collected_{name}.json"
+    if not companies and path.exists():
+        log.warning("Collector %s returned nothing; keeping the existing %s", name, path)
+        return
+    save_companies(path, companies)
 
 
 def run_merge(args: argparse.Namespace) -> None:
