@@ -9,7 +9,7 @@ from pipeline import config
 from pipeline.models import Company, SourceRef
 from pipeline.utils.http import HttpClient
 from pipeline.utils.io import write_raw
-from pipeline.utils.urls import domain_of, normalize_url
+from pipeline.utils.urls import company_id, normalize_url
 
 log = logging.getLogger(__name__)
 
@@ -57,7 +57,7 @@ def _to_company(el: dict, collected_at: datetime) -> Company | None:
     osm_id = f"{el['type']}/{el['id']}"
     website = normalize_url(_first_value(tags, "website", "contact:website", "url"))
     return Company(
-        id=domain_of(website) or f"{SOURCE}:{osm_id}",
+        id=company_id(website, SOURCE, osm_id),
         name=tags["name"],
         website=website,
         phone=_first_value(tags, "phone", "contact:phone"),

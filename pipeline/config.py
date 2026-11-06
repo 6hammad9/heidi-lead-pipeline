@@ -26,6 +26,73 @@ OVERPASS_NAME_PATTERN = (
     "|objektverwalt|property management"
 )
 
+# Google Places API (New), Text Search. Used for discovery; stored data comes from company sites.
+GOOGLE_PLACES_TEXT_SEARCH_URL = "https://places.googleapis.com/v1/places:searchText"
+GOOGLE_PLACES_QUERIES = ["Hausverwaltung"]
+# Per calendar month across all runs (earlier runs counted from data/raw/). Every result page
+# is billed; free quota is 1,000/month, the margin absorbs timeout retries Google may also bill.
+GOOGLE_PLACES_MAX_REQUESTS = 900
+BERLIN_BBOX = {"low": (52.3382, 13.0883), "high": (52.6755, 13.7611)}  # (lat, lng)
+GOOGLE_PLACES_MIN_CELL_DEGREES = 0.005  # ~550 m; stop splitting below this
+GOOGLE_PLACES_PAGE_SIZE = 20  # API maximum; fewer pages = fewer billed requests
+GOOGLE_PLACES_MAX_PAGES = 3  # API returns at most 60 results (3 x 20) per query
+GOOGLE_PLACES_LANGUAGE_CODE = "de"
+GOOGLE_PLACES_REGION_CODE = "DE"  # two-letter CLDR code
+
+# Deduplication
+SOURCE_PRIORITY = ["google_places", "osm"]  # first non-empty field wins in this order
+# Websites on these domains belong to a platform, not the company: never merge on them.
+PLATFORM_DOMAINS = [
+    "facebook.com",
+    "instagram.com",
+    "linkedin.com",
+    "xing.com",
+    "google.com",
+    "goo.gl",
+    "business.site",
+    "hilfelotse-berlin.de",
+    "immobilienscout24.de",
+    "immowelt.de",
+    "gelbeseiten.de",
+    "11880.com",
+    "dasoertliche.de",
+    "dastelefonbuch.de",
+    "jimdosite.com",
+    "wixsite.com",
+    "wordpress.com",
+    "t-online.de",
+    "web.de",
+    "gmx.de",
+]
+LEGAL_FORM_SUFFIXES = [
+    "gmbh & co. kg",
+    "gmbh & co kg",
+    "ug (haftungsbeschränkt)",
+    "gmbh",
+    "mbh",
+    "ag",
+    "kg",
+    "ohg",
+    "gbr",
+    "e.k.",
+    "eg",
+    "e.v.",
+    "ug",
+    "partg mbb",
+    "partg",
+]
+
+# Normalised names too generic to merge on (after legal forms are stripped).
+GENERIC_COMPANY_NAMES = [
+    "hausverwaltung",
+    "hausverwaltung berlin",
+    "immobilienverwaltung",
+    "immobilienverwaltung berlin",
+    "immobilien",
+    "verwaltung",
+    "property management",
+]
+
 # Agent (RULEBOOK → Pipeline): model decided by the Saturday accuracy test
 CANDIDATE_MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5"]
 TOP_TIER_MODEL = "claude-opus-5-5"

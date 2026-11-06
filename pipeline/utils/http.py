@@ -21,7 +21,10 @@ RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
 
 class RetryableStatusError(Exception):
-    pass
+    def __init__(self, status: int, body: str, url: str) -> None:
+        super().__init__(f"{status} from {url}")
+        self.status = status
+        self.body = body
 
 
 class HttpClient:
@@ -65,7 +68,7 @@ class HttpClient:
         kwargs.setdefault("timeout", self.timeout)
         resp = self.session.request(method, url, **kwargs)
         if resp.status_code in RETRYABLE_STATUS:
-            raise RetryableStatusError(f"{resp.status_code} from {url}")
+            raise RetryableStatusError(resp.status_code, resp.text, url)
         resp.raise_for_status()
         return resp
 
