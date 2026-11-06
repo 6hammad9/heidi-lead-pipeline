@@ -1,6 +1,9 @@
 """JSON file I/O. Raw files are write-once; company lists round-trip through the schema."""
 
+import hashlib
 import json
+import os
+import re
 from datetime import datetime
 from pathlib import Path
 
@@ -18,6 +21,21 @@ def write_raw(raw_dir: Path, source: str, payload: object) -> Path:
     with path.open("x", encoding="utf-8") as f:  # "x": never overwrite raw data
         json.dump(payload, f, ensure_ascii=False, indent=2)
     return path
+
+
+def safe_name(text: str) -> str:
+    """A filename for ids like 'osm:node/123': readable slug + hash, so it is unique and can
+    never escape its directory."""
+    slug = re.sub(r"[^a-z0-9._-]+", "_", text.lower()).strip("._")[:60]
+    return f"{slug}-{hashlib.sha1(text.encode()).hexdigest()[:8]}"
+
+
+def write_text_atomic(path: Path, text: str) -> None:
+    """Write to a temp file, then rename: a crash never leaves a half-written file."""
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_name(path.name + ".tmp")
+    tmp.write_text(text, encoding="utf-8")
+    os.replace(tmp, path)
 
 
 def save_companies(path: Path, companies: list[Company]) -> None:
