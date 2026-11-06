@@ -38,6 +38,24 @@ class Contact(BaseModel):
     source_url: str | None = None
 
 
+class Link(BaseModel):
+    url: str
+    text: str
+
+
+class Page(BaseModel):
+    """A fetched page exactly as the agent saw it; quote verification re-reads this text."""
+
+    url: str  # final URL after redirects
+    requested_url: str
+    fetched_at: datetime
+    status: int | None = None
+    text: str = ""
+    truncated: bool = False
+    links: list[Link] = Field(default_factory=list)
+    error: str | None = None
+
+
 class Company(BaseModel):
     id: str
     name: str
