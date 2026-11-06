@@ -238,6 +238,38 @@ needed.** The LLM never calculates scores.
   Check live prices before relying on estimates; web search is billed per
   search.
 - **API key:** spending limit set in the Anthropic console.
+
+### Budget constraint (decided 2026-11-06): €5 total Anthropic API credit
+
+Estimates per company (~5 agent turns, history re-sent each turn) — to be
+replaced by measured cost after the first 10 companies:
+
+| Model | Per company | 300 companies |
+|---|---|---|
+| Haiku 5.5 | ~$0.007 | ~$2 |
+| Sonnet 5.5 | ~$0.13 | ~$39 |
+| Opus 5.5 | ~$0.25 | ~$75 |
+
+Consequences:
+- **Haiku 5.5 runs the full list** (only model that fits). Accuracy test:
+  Haiku on all 10 hand-checked companies, Sonnet on 5 (~$0.70), so the
+  write-up states the measured accuracy/cost tradeoff.
+- **Own fetch tool instead of Anthropic web search/fetch:** our code
+  fetches pages (homepage, Impressum, about, services, team, careers) for
+  free and gives Claude cleaned, length-capped text; Claude can request
+  more pages via a `fetch_page` tool our code executes (robots.txt
+  respected). No per-search fees, and quote verification checks exactly
+  the text the agent saw. Keeps each request under Haiku's 100K-token
+  price step.
+- **No agent run for companies without a website** — kept on the list,
+  flagged low confidence.
+- **Top 40–60 verification and contacts:** done in Claude Code with
+  manual review (no API cost); described as "verified with AI assistance".
+- **Limits:** €5 prepaid credit = hard cap. `AGENT_RUN_BUDGET_USD = 4.00`
+  in code: the run sums actual cost from API usage and stops cleanly,
+  keeping a reserve. Full run starts only after measured cost per company
+  confirms it fits.
+- Check live prices (incl. web search) before relying on these numbers.
 - **Robustness:** checkpoint every company's result to disk as it
   finishes; run in batches of ~50, review the first batch before the rest.
 - **Access:** respect robots.txt and rate limits; sites that block
