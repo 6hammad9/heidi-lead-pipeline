@@ -105,6 +105,50 @@ CANDIDATE_MODELS = ["claude-haiku-5-5", "claude-sonnet-5-5"]
 TOP_TIER_MODEL = "claude-opus-5-5"
 BATCH_SIZE = 50
 
+# Research agent (RULEBOOK → Budget constraint: €5 prepaid Anthropic credit)
+AGENT_MODEL = "claude-haiku-5-5"  # the only model whose full run fits the budget
+AGENT_EFFORT = "medium"  # Haiku 5.5 default, set explicitly; revisit after the accuracy test
+AGENT_MAX_TOKENS = 8000  # per response; adaptive thinking counts toward it
+AGENT_MAX_TURNS = 6  # API calls per company, including corrected resubmissions
+AGENT_MAX_FETCHES_PER_COMPANY = 4  # pages the agent may request beyond the prefetched ones
+AGENT_MAX_SUBMIT_CORRECTIONS = 1  # then invalid claims are nulled and the rest is kept
+AGENT_MAX_COST_PER_COMPANY_USD = 0.05  # Haiku expected ~$0.003/company; stops runaway loops
+AGENT_RUN_BUDGET_USD = 4.00  # all Anthropic spend in the ledger, kept below the €5 credit
+SPEND_LEDGER = DATA_DIR / "anthropic_spend.jsonl"  # append-only, one line per API call
+RESEARCH_DIR = INTERIM_DIR / "research"  # one checkpoint per company, per model
+PAGES_DIR = DATA_DIR / "pages"  # page texts exactly as the agent saw them (quote checks)
+
+# USD per million tokens, platform.claude.com/docs/en/about-claude/pricing, checked 2026-11-06.
+# cache_write = 5-minute TTL writes.
+MODEL_PRICES = {
+    "claude-haiku-5-5": {"input": 0.10, "cache_write": 0.125, "cache_read": 0.01, "output": 0.50},
+    "claude-sonnet-5-5": {"input": 2.00, "cache_write": 2.50, "cache_read": 0.10, "output": 10.00},
+    "claude-opus-5-5": {"input": 4.00, "cache_write": 5.00, "cache_read": 0.20, "output": 20.00},
+}
+# Haiku 5.5 bills a whole request on a higher rate card when its prompt exceeds 100K tokens.
+LONG_PROMPT_PRICES = {
+    "claude-haiku-5-5": (
+        100_000,
+        {"input": 0.50, "cache_write": 0.625, "cache_read": 0.05, "output": 2.50},
+    ),
+}
+
+# Page fetching for the agent (own code instead of paid web search; robots.txt respected)
+PREFETCH_MAX_PAGES = 6  # homepage + up to 5 linked pages picked by keyword group
+# Keyword groups in priority order; one link per group (matched in URL path or link text).
+PREFETCH_KEYWORD_GROUPS = [
+    ["impressum"],
+    ["ueber-uns", "uber-uns", "über-uns", "about", "unternehmen", "wir-ueber-uns"],
+    ["leistungen", "verwaltung", "service", "angebot"],
+    ["team", "ansprechpartner", "mitarbeiter"],
+    ["karriere", "jobs", "stellen"],
+]
+PAGE_TEXT_MAX_CHARS = 8000  # per page after HTML cleaning; keeps prompts far below 100K tokens
+PAGE_MAX_BYTES = 2_000_000
+PAGE_LINKS_MAX = 60  # links listed to the agent per company
+QUOTE_MAX_CHARS = 300
+QUOTE_MATCH_MIN_SCORE = 90  # rapidfuzz partial_ratio when an exact (normalised) match fails
+
 # Scoring (RULEBOOK → Step 3 and Final KPI set)
 TIER_WEIGHTS = {"critical": 3, "important": 2, "useful": 1}
 KPI_TIERS = {
