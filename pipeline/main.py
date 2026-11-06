@@ -23,6 +23,7 @@ from pipeline.research_step import run_research
 from pipeline.utils.http import HttpClient
 from pipeline.utils.io import load_companies, save_companies
 from pipeline.utils.logging_setup import setup_logging
+from pipeline.verify_step import build_verified
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ COLLECTORS: dict[str, Callable[[HttpClient], list[Company]]] = {
     "google_places": collect_google_places,
 }
 MERGED_FILE = config.INTERIM_DIR / "companies_merged.json"
+VERIFIED_FILE = config.INTERIM_DIR / "companies_verified.json"
 
 
 def run_collect(args: argparse.Namespace) -> None:
@@ -85,6 +87,29 @@ def run_research_step(args: argparse.Namespace) -> None:
     log.info("Research summary: %s", summary.model_dump_json())
 
 
+def run_verify(args: argparse.Namespace) -> None:
+    records = CheckpointStore(config.RESEARCH_DIR, args.model).load_all()
+    companies, stats = build_verified(
+        load_companies(MERGED_FILE), records, PageStore(config.PAGES_DIR)
+    )
+    save_companies(VERIFIED_FILE, companies)
+    rate = stats.claims_verified / stats.claims_checked if stats.claims_checked else 0.0
+    log.info(
+        "Verified %d research records: %d/%d claims confirmed on their page (%.0f%%), "
+        "%d/%d contacts, %d published emails -> %s",
+        len(records),
+        stats.claims_verified,
+        stats.claims_checked,
+        rate * 100,
+        stats.contacts_verified,
+        stats.contacts_checked,
+        stats.emails_published,
+        VERIFIED_FILE,
+    )
+    for failure in stats.failures:
+        log.info("Not confirmed: %s", failure)
+
+
 def read_ids(path: Path) -> set[str]:
     """One company id per line; blank lines and # comments ignored."""
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -95,6 +120,7 @@ STEPS: dict[str, Callable[[argparse.Namespace], None]] = {
     "collect": run_collect,
     "merge": run_merge,
     "research": run_research_step,
+    "verify": run_verify,
 }
 
 

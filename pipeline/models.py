@@ -36,6 +36,8 @@ class Contact(BaseModel):
     email_published: bool = False  # False = pattern-guessed, never counted as "Named + email"
     linkedin: str | None = None
     source_url: str | None = None
+    quote: str | None = None
+    verified: bool | None = None
 
 
 class Link(BaseModel):
@@ -80,4 +82,6 @@ class Company(BaseModel):
     metering_provider: Fact = Field(default_factory=Fact)
 
     contacts: list[Contact] = Field(default_factory=list)
+    research_status: str | None = None  # the agent's stop reason; None = not researched
+    research_notes: str | None = None
     errors: list[str] = Field(default_factory=list)
