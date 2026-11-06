@@ -55,6 +55,9 @@ class BuyerTypeClaim(_Strict):
     quote: str | None
 
 
+Claim = IntClaim | TextClaim | ResidentialShareClaim | BuyerTypeClaim
+
+
 class ContactClaim(_Strict):
     name: str
     role: str | None
