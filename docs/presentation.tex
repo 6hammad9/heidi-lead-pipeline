@@ -1,9 +1,11 @@
 % Presentation: Berlin Hausverwaltung Leads (Heidi Systems case study).
-% Beamer source; one frame = one slide. Each slide has a short speaker note (\note).
+% Beamer source; one frame = one slide. \note{} holds what to say on each slide.
+% Story: why KPIs come first -> choosing a method -> deriving the KPIs -> testing them ->
+% the evidence behind them -> turning them into a score -> how review changed them ->
+% the agent that fills them -> does it work -> what we learned.
 \documentclass[aspectratio=169,11pt]{beamer}
 
 \usetheme{default}
-\usecolortheme{default}
 \setbeamertemplate{navigation symbols}{}
 \setbeamertemplate{footline}[frame number]
 \usepackage[T1]{fontenc}
@@ -12,236 +14,551 @@
 
 \definecolor{accent}{HTML}{0B6A70}
 \definecolor{assume}{HTML}{9A4F0A}
+\definecolor{bad}{HTML}{A33A3A}
 \setbeamercolor{frametitle}{fg=accent}
 \setbeamercolor{title}{fg=accent}
 \setbeamercolor{structure}{fg=accent}
-\newcommand{\ev}{\textcolor{accent}{Evidence}}
-\newcommand{\as}{\textcolor{assume}{Assumption}}
+\setbeamercolor{section in toc}{fg=accent}
+\newcommand{\ev}{\textcolor{accent}{\textbf{Evidence}}}
+\newcommand{\as}{\textcolor{assume}{\textbf{Assumption}}}
+\newcommand{\yes}{\textcolor{accent}{\textbf{pass}}}
+\newcommand{\no}{\textcolor{bad}{\textbf{fail}}}
+\newcommand{\partlabel}[1]{{\small\color{assume}\textsc{#1}}\par\vspace{0.3em}}
 
 \title{Berlin Hausverwaltung Leads}
-\subtitle{An AI agent that finds, researches and scores property managers for Heidi Systems}
+\subtitle{How I decided what makes a good lead, and built an agent to measure it}
 \author{Hammad Naseer}
-\date{Case study \textbullet{} AI Agent Builder \textbullet{} November 2026}
+\date{Case study \textbullet{} AI Agent Builder \textbullet{} Heidi Systems \textbullet{} November 2026}
 
 \begin{document}
 
-%--------------------------------------------------------------------
+%====================================================================
 \begin{frame}
   \titlepage
-  \note{One automated pipeline: it finds every Berlin Hausverwaltung, reads their websites with
-  an AI agent, checks every claim, and ranks them as leads.}
+  \note{This presentation follows the order I worked in. Most of it is about one decision:
+  what makes a Hausverwaltung a good lead for Heidi. Everything else, including the agent,
+  follows from that.}
 \end{frame}
 
-%--------------------------------------------------------------------
-\begin{frame}{The result in one slide}
+%====================================================================
+\begin{frame}{The task}
+  \begin{itemize}
+    \item Heidi is a \textbf{metering service provider}: heating and water meters, and the
+          annual heating-cost bill under the HeizkostenV
+    \item Heidi's customers are \textbf{Hausverwaltungen} (property managers), not tenants
+    \item The task:
+      \begin{enumerate}
+        \item List as many Berlin Hausverwaltungen as possible
+        \item Choose qualifying KPIs and fill them in for each company
+        \item Bonus: a named contact with email or LinkedIn
+        \item Explain sources, tools, automation and validation
+      \end{enumerate}
+    \item The brief says the \textbf{choice of KPIs and the reasoning behind it} are part of
+          the evaluation
+  \end{itemize}
+  \note{The list is the easy part. The real question in the brief is: which companies should
+  Heidi call first, and why? That's a KPI question.}
+\end{frame}
+
+%====================================================================
+\section{Why the KPIs come first}
+
+\begin{frame}{Why the KPIs come first}
+  \partlabel{Part 1\textbullet{} The first decision}
+  The KPIs decide everything that comes after them:
+  \begin{itemize}
+    \item \textbf{What to collect:} which data sources are worth using
+    \item \textbf{What the agent looks for} on each website
+    \item \textbf{How companies are ranked}, which is what sales actually uses
+  \end{itemize}
+  \vspace{0.8em}
+  If the KPIs are wrong, a perfect pipeline still produces a \textbf{confident, wrong ranking}.
+  \vspace{0.8em}
+
+  So I set the method for choosing KPIs \emph{before} looking at any data.
+  \note{It's tempting to start scraping and then score whatever you find. But then the KPIs
+  are chosen by what's easy to get, not by what predicts a good customer.}
+\end{frame}
+
+\begin{frame}{Two traps to avoid}
   \begin{columns}[T]
-    \column{0.5\textwidth}
+    \column{0.48\textwidth}
+    \textbf{Trap 1: measuring what's easy}
     \begin{itemize}
-      \item \textbf{2,080} Berlin companies
-      \item \textbf{1,563} websites researched by the agent
-      \item \textbf{96\%} of agent claims confirmed on the source page
-      \item \textbf{91\%} accuracy against a hand check
+      \item Google gives a rating, a district and a phone number for every company
+      \item None of them says how many meters a company could bring
+      \item Easy data looks like a KPI, but it doesn't predict value
     \end{itemize}
-    \column{0.5\textwidth}
+    \column{0.48\textwidth}
+    \textbf{Trap 2: gut feeling}
     \begin{itemize}
-      \item \textbf{1,098} named contacts, \textbf{1,070} company emails
-      \item \textbf{\$2.93} AI cost for the full run
-      \item \textbf{1 command}, no manual steps
-      \item Delivered as an Excel file, a write-up and code on GitHub
+      \item ``Bigger companies are better'' sounds right
+      \item But how much better? Is a municipal giant a good lead?
+      \item Without a method, nobody can check or challenge the choice
     \end{itemize}
   \end{columns}
-  \note{The headline numbers. Everything after this explains how they were produced and how far
-  they can be trusted.}
-\end{frame}
-
-%--------------------------------------------------------------------
-\begin{frame}{Method first, KPIs second}
-  \begin{enumerate}
-    \item \textbf{Goal-Question-Metric:} one goal, five questions, one KPI per question
-    \item \textbf{SMART check:} a KPI that can't be measured or found becomes an info column
-    \item \textbf{Three tests:} does it predict deal value, does it vary across companies, can
-          we actually get the data?
-    \item \textbf{Weighted score:} weights 3 / 2 / 1, each KPI scored 0--5
-  \end{enumerate}
   \vspace{1em}
-  Every scoring choice is labelled \ev{} (with a source) or \as{} (stated openly).
-  \note{I didn't pick KPIs from whatever data was easy to find. The method came first, so every
-  column can be traced back to a question and a source.}
+  What I needed: a method where \textbf{every KPI traces back to a business question and
+  a source}.
+  \note{Example: early on I asked whether including the big municipal housing companies was
+  a gut call or a rule. Without a method I couldn't answer that. With one, it became a
+  measurable KPI: buyer type.}
 \end{frame}
 
-%--------------------------------------------------------------------
-\begin{frame}{Goal: the most valuable, most winnable customers}
-  \begin{tabular}{@{}p{6.6cm} p{6.2cm}@{}}
-    \toprule
-    \textbf{Question} & \textbf{KPI} \\
-    \midrule
-    Q1 How much metering volume? & Units managed \\
-    Q2 Covered by HeizkostenV billing? & Residential share \\
-    Q3 Who signs, and can we win it? & Buyer type (+ association bonus) \\
-    Q4 How easy to switch to Heidi? & Uses software Heidi integrates with \\
-    Q5 Why act now? & 31 Dec 2026 deadline (whole market) \\
-    \bottomrule
-  \end{tabular}
-  \note{Five questions a salesperson would ask. Q5 applies to every company, so it's the pitch
-  rather than a score.}
-\end{frame}
+%====================================================================
+\section{Choosing a method}
 
-%--------------------------------------------------------------------
-\begin{frame}{The scored KPIs}
+\begin{frame}{Which method? The options I considered}
+  \partlabel{Part 2 \textbullet{} Choosing the method}
   \small
-  \begin{tabular}{@{}p{3.2cm} p{2.0cm} p{8.0cm}@{}}
+  \begin{tabular}{@{}p{3.4cm} p{5.6cm} p{3.6cm}@{}}
     \toprule
-    \textbf{KPI} & \textbf{Weight} & \textbf{Why} \\
+    \textbf{Method} & \textbf{What it is for} & \textbf{Decision} \\
     \midrule
-    Units managed & 3 (critical) & \ev: Heidi prices per unit, so revenue scales with units \\
-    Residential share & 2 & \as: residential portfolios need more heating-cost billing \\
-    Buyer type & 2 & \ev: rental managers can sign; in a WEG the owners vote (\S\,19 WEG);
-      municipal companies run metering in-house \\
-    Heidi software & 1 & \ev: Heidi integrates with Domus, Immoware24, Wodis, Immocloud \\
-    Association, growth & +3 bonus each & \as: signals of professionalism and growth \\
+    BANT / MEDDIC & Qualifying a deal already in talks: budget, authority, need, timing &
+      \textcolor{bad}{Rejected:} a cold list has no budget or timing to observe \\
+    Gut-feeling scorecard & Quick ranking by experience & \textcolor{bad}{Rejected:} not
+      traceable or testable \\
+    \textbf{Goal-Question-Metric} & Deriving metrics top-down from a goal
+      (Basili et al., 1994) & \textcolor{accent}{\textbf{Chosen}} to \emph{derive} the KPIs \\
+    \textbf{SMART} & Checking that a metric is usable (Doran, 1981) &
+      \textcolor{accent}{\textbf{Chosen}} to \emph{filter} the KPIs \\
+    \textbf{B2B segmentation} & Firmographic, technographic, behavioral &
+      \textcolor{accent}{\textbf{Chosen}} to \emph{check coverage} \\
+    \textbf{Weighted lead scoring} & Combining several KPIs into one rank &
+      \textcolor{accent}{\textbf{Chosen}} to \emph{score} \\
     \bottomrule
   \end{tabular}
-  \note{Size matters most because Heidi charges per unit. Buyer type matters because it decides
-  who signs the contract.}
+  \note{BANT and MEDDIC are the best-known sales frameworks, but they assume you're already
+  talking to a buyer. For a cold list scraped from the web, budget and timing simply can't be
+  observed, so they'd produce empty columns.}
 \end{frame}
 
-%--------------------------------------------------------------------
-\begin{frame}{Scoring rules}
-  \[
-  \text{Lead score} = \frac{\sum \text{weight} \times \text{score}}{\sum \text{weight of
-  \emph{known} KPIs}} \times 18.8 + \text{bonus} \quad (0\text{--}100)
-  \]
+\begin{frame}{Why Goal-Question-Metric}
   \begin{itemize}
-    \item \textbf{Unknown is not zero:} a KPI a site doesn't mention is left out of the average
-    \item \textbf{Confidence flag:} Low when size is unknown or less than half of the weight is known
-    \item \textbf{No double counting:} employees and buildings only \emph{estimate} units
-          (150 units per employee, based on 64 companies)
-    \item \textbf{Lead quality and reachability kept apart:} contact status is its own column
+    \item Developed at the University of Maryland and NASA's Software Engineering Laboratory
+          to stop teams from measuring \textbf{whatever is easy to count}
+    \item It works \textbf{top-down}:
+      \begin{enumerate}
+        \item \textbf{Goal:} what do we want to achieve?
+        \item \textbf{Questions:} what do we need to know to get there?
+        \item \textbf{Metrics:} what measurable value answers each question?
+      \end{enumerate}
+    \item Every metric is justified by a question, and every question by the goal
+    \item A metric that answers no question gets dropped, however easy it is to collect
   \end{itemize}
-  \note{Counting unknown as zero would rank small companies with detailed websites above big ones
-  that publish little.}
-\end{frame}
-
-%--------------------------------------------------------------------
-\begin{frame}{Why now: the HeizkostenV deadline}
-  \begin{itemize}
-    \item Existing meters that can't be read remotely must be retrofitted or replaced
-          \textbf{by 31 December 2026} (\S\,5 Abs.\,3)
-    \item Otherwise tenants may cut their heating-cost share by \textbf{3\%} (\S\,12)
-    \item Once meters can be read remotely, consumption information is due \textbf{monthly} (\S\,6a)
-    \item Metering contracts often run up to 10 years, so the retrofit is a natural moment to
-          switch provider (\as)
-  \end{itemize}
-  \note{Checked against the official text on gesetze-im-internet.de. This is the reason to call
-  these companies now.}
-\end{frame}
-
-%--------------------------------------------------------------------
-\begin{frame}{The pipeline: AI for judgement, code for exactness}
-  \begin{enumerate}
-    \item \textbf{Collect} (code): Google Places in map cells + OpenStreetMap
-    \item \textbf{Merge} (code): duplicates by website domain, then by name
-    \item \textbf{Fetch} (code): up to 6 pages per site, robots.txt respected
-    \item \textbf{Research} (AI): the agent reads the pages and submits facts with quotes
-    \item \textbf{Verify} (code): every quote checked against the page
-    \item \textbf{Score \& export} (code): the formula, written to Excel
-  \end{enumerate}
   \vspace{0.5em}
-  One command: \texttt{python -m pipeline.main all}
-  \note{The AI never calculates a score. It only reads websites and extracts facts.}
+  This is exactly the protection against both traps.
+  \note{The key property: you can point at any column in the sheet and ask ``why is this
+  here?'', and the answer is always a question about Heidi's business.}
 \end{frame}
 
-%--------------------------------------------------------------------
-\begin{frame}{The agent: evidence or unknown}
-  \begin{itemize}
-    \item Model: \textbf{Claude Haiku 5.5}, about \$0.002 per company
-    \item Every value needs a \textbf{source URL and a word-for-word quote}, or it must say ``unknown''
-    \item Two tools only: \texttt{fetch\_page} (same site only) and \texttt{submit\_record}
-          (strict schema)
-    \item Code re-checks every quote, and numbers must appear in the quote
-    \item Our own page fetching instead of paid web search, plus prompt caching, keeps the cost low
-  \end{itemize}
-  \note{The agent is not trusted. Its claims are verified by code, and anything that fails
-  becomes unknown.}
+\begin{frame}{The full chain: each step has one job}
+  \begin{enumerate}
+    \item \textbf{Goal-Question-Metric} \textrightarrow{} \emph{proposes} candidate KPIs
+    \item \textbf{SMART} \textrightarrow{} \emph{removes} KPIs that can't be measured or found
+    \item \textbf{Three tests} \textrightarrow{} \emph{ranks} the survivors:
+      \begin{itemize}
+        \item \textbf{Correlation:} does it actually move deal size or win chance?
+        \item \textbf{Discrimination:} does it differ between companies?
+        \item \textbf{Feasibility:} can we find and verify it for most companies?
+      \end{itemize}
+    \item \textbf{Tiers and weights} \textrightarrow{} Critical 3, Important 2, Useful 1
+    \item \textbf{Label every reason} \textrightarrow{} \ev{} with a source, or \as{} stated openly
+  \end{enumerate}
+  \note{The tiering tests are what turn a list of reasonable ideas into a ranking. A KPI can
+  be relevant and still useless if every company has the same value.}
 \end{frame}
 
-%--------------------------------------------------------------------
-\begin{frame}{Guardrails: it runs unattended}
-  \begin{itemize}
-    \item \textbf{Budget:} hard stop at \$4 total and a cap per company
-    \item \textbf{Quality gate:} after 25 companies the run checks failures, verification rate and
-          cost, and stops itself if any is out of range
-    \item \textbf{Restartable:} each company is saved as soon as it's done
-    \item \textbf{Polite:} robots.txt respected, blocked sites skipped, never worked around
-    \item \textbf{Tested:} 248 automated tests
-  \end{itemize}
-  \note{The full run took about 7 hours overnight with nobody watching it.}
-\end{frame}
+%====================================================================
+\section{Deriving the KPIs}
 
-%--------------------------------------------------------------------
-\begin{frame}{Validation}
-  \begin{tabular}{@{}p{8.2cm} p{4.6cm}@{}}
+\begin{frame}{Step 1: the goal and the five questions}
+  \partlabel{Part 3 \textbullet{} Goal-Question-Metric applied}
+  \textbf{Goal:} find the Berlin Hausverwaltungen that are the \textbf{most valuable} and
+  \textbf{most winnable} customers for a metering service.
+  \vspace{0.6em}
+
+  \begin{tabular}{@{}p{6.6cm} p{6.4cm}@{}}
     \toprule
-    \textbf{Check} & \textbf{Result} \\
+    \textbf{Question} & \textbf{Why it matters to Heidi} \\
     \midrule
-    Claims confirmed on the cited page & 3,945 / 4,127 (96\%) \\
-    Contacts confirmed on the cited page & 1,601 / 1,686 (95\%) \\
-    Accuracy vs. hand-checked websites & 41 / 45 fields (91\%) \\
-    Haiku vs. Sonnet on the same 5 companies & 21 vs. 22 of 25 \\
-    Cost per company, Haiku vs. Sonnet & \$0.002 vs. \$0.033 \\
+    Q1 How much metering volume could they bring? & Heidi charges per unit per year \\
+    Q2 Is the portfolio covered by HeizkostenV billing? & That's what creates the need \\
+    Q3 Who signs, and how easily can it be won? & Decides the sales path \\
+    Q4 How easily could they switch to Heidi? & Integration lowers the barrier \\
+    Q5 Is there a reason to act now? & Timing of the sales push \\
+    \bottomrule
+  \end{tabular}
+  \note{``Valuable'' gives Q1 and Q2, ``winnable'' gives Q3 and Q4, and Q5 is about timing.
+  Each question comes from how Heidi actually makes money.}
+\end{frame}
+
+\begin{frame}{Step 2: candidate KPIs for each question}
+  \small
+  \begin{tabular}{@{}p{3.0cm} p{9.8cm}@{}}
+    \toprule
+    \textbf{Question} & \textbf{Candidates} \\
+    \midrule
+    Q1 Volume & Units managed \textbullet{} number of buildings \textbullet{} employees
+      \textbullet{} growth (hiring, expansion) \\
+    Q2 HeizkostenV & Residential share of the portfolio \\
+    Q3 Who signs & Buyer type (rental manager, WEG manager, cooperative, own portfolio,
+      municipal) \textbullet{} association membership \textbullet{} contact found \\
+    Q4 Switching & Uses software Heidi integrates with \\
+    Q5 Act now & Remote-reading meters mentioned \textbullet{} current metering provider \\
+    Other ideas & District \\
     \bottomrule
   \end{tabular}
   \vspace{0.6em}
 
-  The misses were cautious ``unknowns'', never invented values. Sonnet is barely better at 15
-  times the cost, so Haiku runs the list.
-  \note{The verification rate proves the quotes are real. The hand check proves the answers are
-  right.}
+  12 candidates. Next, the tests decide which ones actually score.
+  \note{I deliberately listed more candidates than I needed. The point of the tests is to
+  throw most of them out for a stated reason.}
 \end{frame}
 
-%--------------------------------------------------------------------
-\begin{frame}{What's in the Excel file}
-  \begin{tabular}{@{}p{9.4cm} r@{}}
+%====================================================================
+\section{Testing the KPIs}
+
+\begin{frame}{Step 3: the tests}
+  \partlabel{Part 4 \textbullet{} Testing every candidate}
+  \footnotesize
+  \begin{tabular}{@{}p{3.4cm} c c c p{4.8cm}@{}}
     \toprule
-    Scored, confidence OK & 242 \\
-    Scored, confidence Low (size unknown) & 904 \\
-    Excluded: not a property manager (brokers, caretakers) & 417 \\
-    Site dead or blocked & 219 \\
-    No own website (kept with phone and address) & 517 \\
+    \textbf{Candidate} & \textbf{Correl.} & \textbf{Discrim.} & \textbf{Feasible} & \textbf{Result} \\
     \midrule
-    Named contact \textbullet{} with personal email \textbullet{} company email & 1,098 \textbullet{} 88 \textbullet{} 1,070 \\
+    Units managed & \yes & \yes & partly & \textbf{Critical} (weight 3) \\
+    Buyer type & \yes & \yes & \yes & \textbf{Important} (2) \\
+    Residential share & \yes & weak & \yes & \textbf{Important} (2) \\
+    Heidi-compatible software & partly & \yes & rarely & \textbf{Useful} (1) \\
+    Association, growth & unproven & \yes & only if present & \textbf{Bonus} (+3 each) \\
+    Buildings, employees & same as units & & & Only to \emph{estimate} units \\
+    Remote reading mentioned & \yes & \no & & Info column \\
+    Current metering provider & unclear & & rarely & Info column \\
+    Contact found & \no & & & Separate column \\
+    District & \no & & & Dropped \\
     \bottomrule
   \end{tabular}
-  \note{Sorted by lead score. Every value has its source link and quote in the Evidence column.}
+  \note{Two kinds of failure here. District fails correlation: nothing says a company in
+  Spandau is a better customer than one in Mitte. Remote reading fails discrimination: almost
+  no company mentions it, so it can't separate good leads from bad.}
 \end{frame}
 
-%--------------------------------------------------------------------
-\begin{frame}{What the data showed}
+\begin{frame}{The hard calls, and why}
   \begin{itemize}
-    \item \textbf{Size is rarely published:} only 178 companies state their units (median 2,000)
-    \item \textbf{About a quarter of Google's results aren't Hausverwaltungen:} 417 excluded
-    \item \textbf{Decision-maker emails are scarce:} most sites name a director but give only
-          an office email
-    \item \textbf{Municipal companies meter in-house:} degewo and STADT UND LAND use their own
-          subsidiaries
-    \item \textbf{Software and metering provider are rarely named:} 82 and 7 companies
+    \item \textbf{Residential share was demoted from Critical to Important.} It's relevant, but
+          most Hausverwaltungen are mainly residential, so it barely separates them.
+    \item \textbf{Buildings and employees aren't scored.} They measure the same thing as
+          units. Scoring all three would count size three times.
+    \item \textbf{Association and growth became bonus points.} We can only see them when
+          they're present. ``Not found'' doesn't mean ``no''.
+    \item \textbf{Contact found isn't part of the score.} Whether we found an email says
+          nothing about how good a customer the company would be. It's actionability, so it
+          gets its own column.
+    \item \textbf{Municipal companies aren't excluded by hand.} They became a value of buyer
+          type, scored on evidence.
   \end{itemize}
-  \note{These findings shape the next step: size and the decision-maker's email are the gaps to
-  close.}
+  \note{Each of these was a decision I could have made by feel. Writing down the reason forced
+  me to make them consistent.}
 \end{frame}
 
-%--------------------------------------------------------------------
-\begin{frame}{Limits and next steps}
+\begin{frame}{The final KPI set}
+  \small
+  \begin{tabular}{@{}p{3.3cm} p{2.0cm} p{2.6cm} p{5.0cm}@{}}
+    \toprule
+    \textbf{KPI} & \textbf{Weight} & \textbf{Segment} & \textbf{Scale (0--5)} \\
+    \midrule
+    Units managed & 3 & Firmographic & 5 bands from real published values \\
+    Buyer type & 2 & Firmographic & Rental 5 \textbullet{} WEG / mixed 4 \textbullet{}
+      coop / own 3 \textbullet{} municipal 2 \\
+    Residential share & 2 & Firmographic & Residential 5 \textbullet{} mixed 3
+      \textbullet{} commercial 1 \\
+    Heidi software & 1 & Technographic & Integrated 5 \textbullet{} other 2 \\
+    Association & +3 & Behavioral & Only adds \\
+    Growth signal & +3 & Behavioral & Only adds \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.6em}
+
+  All three segments are covered: \textbf{what the company is}, \textbf{what it uses},
+  \textbf{what it's doing}.
+  \note{The segmentation check confirms nothing big is missing: we have size and type, the
+  technology, and activity signals.}
+\end{frame}
+
+%====================================================================
+\section{The evidence behind the KPIs}
+
+\begin{frame}{Evidence: size and who signs}
+  \partlabel{Part 5 \textbullet{} What backs each KPI}
   \begin{itemize}
-    \item Validate the \as{} weights against Heidi's real win data
-    \item Re-check the top-scored leads with a stronger model
-    \item Cover the 517 companies without a website (directories, phone)
-    \item LinkedIn not searched (terms of service), so contacts come from company websites only
-    \item Schedule a weekly run: it only researches new companies
+    \item \textbf{Units managed (weight 3):} Heidi prices \emph{per housing unit per year}, so
+          revenue scales directly with units \hfill \ev{} (Heidi blog)
+    \item \textbf{Buyer type, rental manager = 5:} for rental property the landlord decides,
+          or the manager if authorised, so one relationship covers many owners
+          \hfill \ev{} (Heidi blog)
+    \item \textbf{Buyer type, WEG manager = 4:} the owners choose the metering provider by
+          resolution, usually on the manager's proposal \hfill \ev{} (\S\,19 WEG)
+    \item \textbf{Buyer type, municipal = 2:} WBM and HOWOGE run metering through their own
+          subsidiaries \hfill \ev{} (job ad, tender)
+  \end{itemize}
+  \vspace{0.4em}
+  \small A detail I caught: Heidi's own blog cites \S\,21 WEG. Since the 2020 reform the
+  correct basis is \textbf{\S\,19 WEG}.
+  \note{The WEG point is why WEG managers score 4 and not 5: there's an extra approval step,
+  the owners' vote.}
+\end{frame}
+
+\begin{frame}{Evidence: switching and timing}
+  \begin{itemize}
+    \item \textbf{Software:} Heidi integrates with Domus, Immoware24, Wodis Sigma and
+          Immocloud \hfill \ev{} (Heidi blog)
+    \item \textbf{Why now:}
+      \begin{itemize}
+        \item Existing meters that can't be read remotely must be retrofitted or replaced
+              \textbf{by 31 Dec 2026} \hfill \ev{} (HeizkostenV \S\,5 Abs.\,3)
+        \item Otherwise tenants may cut their heating-cost share by \textbf{3\%}
+              \hfill \ev{} (\S\,12)
+        \item Metering contracts often run \textbf{up to 10 years} \hfill \ev{} (Heidi blog)
+      \end{itemize}
+    \item Q5 isn't scored: the deadline applies to \emph{every} company, so it can't rank them.
+          It's the \textbf{pitch}, not a KPI.
+  \end{itemize}
+  \note{The legal text was checked on gesetze-im-internet.de, not just in vendor blogs, because
+  metering companies have an interest in the deadline.}
+\end{frame}
+
+\begin{frame}{What is still an assumption}
+  Stated openly instead of presented as fact:
+  \begin{itemize}
+    \item \as{} Residential portfolios need more heating-cost billing. It's a proxy: the
+          HeizkostenV also covers commercial buildings.
+    \item \as{} Cooperatives and private landlords score 3, because they're one decision-maker
+          but may have central contracts.
+    \item \as{} Software integration raises the win rate.
+    \item \as{} Association membership and growth signal a better customer.
+    \item \as{} Managers reconsider the provider at retrofit time.
+  \end{itemize}
+  \vspace{0.6em}
+  \textbf{Next step:} test these against Heidi's real win and loss data, and replace the weights.
+  \note{A scoring model with hidden assumptions can't be improved. One with labelled
+  assumptions tells Heidi exactly what to measure next.}
+\end{frame}
+
+%====================================================================
+\section{Turning KPIs into a score}
+
+\begin{frame}{Problem 1: missing data}
+  \partlabel{Part 6 \textbullet{} From KPIs to one number}
+  Most websites don't publish everything. What should ``unknown'' count as?
+  \vspace{0.4em}
+
+  \small
+  \begin{tabular}{@{}p{5.2cm} p{3.6cm} p{3.6cm}@{}}
+    \toprule
+    & \textbf{Unknown = 0} & \textbf{Unknown left out} \\
+    \midrule
+    A: small, publishes everything & 66 & 66 \\
+    B: large, publishes only its size & \textcolor{bad}{35} & 94 + \textbf{Low confidence} \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.6em}
+
+  \normalsize
+  \begin{itemize}
+    \item Scoring unknown as 0 punishes companies for having a short website
+    \item So unknown KPIs are \textbf{left out of the average}, and a \textbf{Data
+          completeness} column and a \textbf{confidence flag} show how much is known
+  \end{itemize}
+  \note{Company B is probably the better lead, because size is the critical KPI. Zero-scoring
+  would hide it at 35. Leaving unknowns out puts it on top, but flagged, so sales knows to
+  check it.}
+\end{frame}
+
+\begin{frame}{Problem 2: a bonus that lowered the score}
+  First version: association membership scored 4/5 \emph{inside} the average.
+  \vspace{0.4em}
+  \begin{itemize}
+    \item A company scoring 5 on everything: \textbf{100}
+    \item The same company, plus a found membership (4): \textcolor{bad}{\textbf{98}}
+  \end{itemize}
+  Finding a \emph{positive} signal pulled the score \emph{down}.
+  \vspace{0.6em}
+
+  \textbf{Fix:} bonus signals sit outside the average and can only add.
+  \[
+  \text{Lead score} = \underbrace{\text{Base} \times 18.8}_{\text{max } 94} +
+  \underbrace{\text{bonus}}_{\text{max } 6}
+  \]
+  \note{18.8 is 94 divided by 5. The base is scaled to 94, not 100, so the bonus still breaks
+  ties at the top.}
+\end{frame}
+
+\begin{frame}{Problem 3: where do the size bands come from?}
+  \begin{itemize}
+    \item No industry standard says what a ``large'' Berlin Hausverwaltung is
+    \item So the bands are set from the \textbf{178 companies that publish their units}, as
+          five equal groups:
+  \end{itemize}
+  \begin{center}
+  \begin{tabular}{ccccc}
+    \toprule
+    1 & 2 & 3 & 4 & 5 \\
+    \midrule
+    $<$800 & 800--1,400 & 1,400--3,000 & 3,000--6,640 & $>$6,640 \\
+    \bottomrule
+  \end{tabular}
+  \end{center}
+  \begin{itemize}
+    \item When units aren't published, they're \textbf{estimated} from our own data: 150 units
+          per employee (64 companies) or 29 per building (38 companies)
+    \item Estimates are marked \emph{estimated}, and they don't shape the bands
+  \end{itemize}
+  \note{Calibrating from our own data means the scale fits the Berlin market, not an
+  arbitrary rule of thumb.}
+\end{frame}
+
+%====================================================================
+\section{Review}
+
+\begin{frame}{How review changed the KPIs}
+  \partlabel{Part 7 \textbullet{} Iteration}
+  The KPI set was reviewed twice before anything was built. What changed:
+  \begin{itemize}
+    \item Residential share: \textbf{Critical \textrightarrow{} Important} (weak discrimination)
+    \item Remote reading: \textbf{KPI \textrightarrow{} info column} (almost nobody mentions it;
+          in the end, 20 of 1,563 sites)
+    \item Association: \textbf{inside the average \textrightarrow{} bonus} (the 98 bug)
+    \item WEG basis: \textbf{\S\,21 \textrightarrow{} \S\,19 WEG}
+    \item Municipal companies: \textbf{exclusion by hand \textrightarrow{} buyer type value}
+    \item Unit estimation: \textbf{rule of thumb \textrightarrow{} calibrated on our own data}
+    \item Lead score and contact status: \textbf{split} into two columns
+  \end{itemize}
+  \note{Having a written method made the review productive. Each critique pointed at a
+  specific rule, and each fix was a rule change, not a rewrite.}
+\end{frame}
+
+%====================================================================
+\section{The agent}
+
+\begin{frame}{From KPIs to the agent}
+  \partlabel{Part 8 \textbullet{} Filling the KPIs automatically}
+  Each KPI definition became an instruction for the agent. For example:
+  \vspace{0.4em}
+
+  \small
+  \begin{block}{Buyer type, as the agent receives it}
+    \emph{third\_party\_rental:} manages property for other owners, with rental management as
+    the stated or clearly dominant focus. \emph{third\_party\_weg:} \dots{} with
+    WEG-Verwaltung as the focus. \emph{not\_property\_manager:} only brokerage, caretaking,
+    construction or law. A broker that also manages property is NOT this.
+  \end{block}
+  \normalsize
+  \begin{itemize}
+    \item Same definitions for the agent, the scoring and the hand check
+    \item Each value must come with a \textbf{source URL and a word-for-word quote}, or it's
+          ``unknown''
+  \end{itemize}
+  \note{Because the KPIs were precisely defined, they could be handed to an AI. A vague KPI like
+  ``good fit'' can't be automated or checked.}
+\end{frame}
+
+\begin{frame}{The pipeline: AI for judgement, code for exactness}
+  \begin{enumerate}
+    \item \textbf{Collect} (code): Google Places, with Berlin split into map cells, plus
+          OpenStreetMap
+    \item \textbf{Merge} (code): duplicates by website domain, then by name
+    \item \textbf{Fetch} (code): up to 6 pages per site, robots.txt respected
+    \item \textbf{Research} (AI, Claude Haiku 5.5): reads the pages, may open 4 more, submits
+          facts with quotes
+    \item \textbf{Verify} (code): every quote checked against the page; a failure becomes
+          unknown
+    \item \textbf{Score \& export} (code): the formula, written to Excel
+  \end{enumerate}
+  \vspace{0.4em}
+  One command, no manual steps. Budget stop, automatic quality gate after 25 companies,
+  checkpoint after every company.
+  \note{The AI never calculates a score. It reads and extracts; code checks and scores.}
+\end{frame}
+
+%====================================================================
+\section{Does it work?}
+
+\begin{frame}{Validation}
+  \partlabel{Part 9 \textbullet{} Can the numbers be trusted?}
+  \begin{tabular}{@{}p{8.0cm} p{4.8cm}@{}}
+    \toprule
+    \textbf{Check} & \textbf{Result} \\
+    \midrule
+    Claims confirmed on the cited page (code) & 3,945 / 4,127 (96\%) \\
+    Accuracy vs. hand-checked websites & 41 / 45 fields (91\%) \\
+    Haiku vs. Sonnet on the same 5 companies & 21 vs. 22 of 25 \\
+    Cost per company: Haiku vs. Sonnet & \$0.002 vs. \$0.033 \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.6em}
+  \begin{itemize}
+    \item Every miss was a cautious ``unknown'' or a borderline call, never an invented value
+    \item The agent even found a figure the hand check had missed
+    \item Sonnet is barely better at 15 times the cost, so Haiku runs the list
+  \end{itemize}
+  \note{Two different checks: the 96\% proves the quotes are real; the 91\% proves the answers
+  are right.}
+\end{frame}
+
+\begin{frame}{Results: 2,080 Berlin companies for \$2.93}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \begin{itemize}
+      \item \textbf{242} scored, confidence OK
+      \item \textbf{904} scored, confidence Low
+      \item \textbf{417} excluded: not property managers
+      \item \textbf{219} sites dead or blocked
+      \item \textbf{517} without own website
+    \end{itemize}
+    \column{0.5\textwidth}
+    \begin{itemize}
+      \item \textbf{1,098} named contacts
+      \item \textbf{88} with a personal email
+      \item \textbf{1,070} company emails
+      \item Every value has its source and quote in the sheet
+    \end{itemize}
+  \end{columns}
+  \note{The Excel file is sorted by lead score, with confidence and contact status next to it.}
+\end{frame}
+
+%====================================================================
+\section{What the data said about the KPIs}
+
+\begin{frame}{What the data said back about the KPIs}
+  \partlabel{Part 10 \textbullet{} Lessons}
+  \begin{itemize}
+    \item \textbf{The most important KPI is the hardest to find:} only 178 companies publish
+          their units. That's why the confidence flag and unit estimation matter.
+    \item \textbf{Buyer type was worth defining carefully:} it caught 417 brokers and other
+          non-managers that Google listed as property management.
+    \item \textbf{Software got the right low weight:} only 82 companies name theirs.
+    \item \textbf{Municipal = 2 was confirmed:} the agent found that degewo and STADT UND LAND
+          also run metering in-house.
+    \item \textbf{Dropping remote reading was right:} only 20 sites mention it.
+  \end{itemize}
+  \note{The data validated most of the KPI decisions made before any data existed. That's the
+  benefit of deciding the method first.}
+\end{frame}
+
+\begin{frame}{Next steps}
+  \begin{itemize}
+    \item \textbf{Turn assumptions into evidence:} fit the weights on Heidi's real wins and
+          losses
+    \item \textbf{Close the size gap:} add sources for units (press, directories, registers)
+    \item \textbf{Re-check the top leads} with a stronger model
+    \item \textbf{Cover the 517 companies without a website}
+    \item \textbf{Run it weekly:} only new companies are researched, at about \$0.002 each
   \end{itemize}
   \vspace{1em}
-  \textbf{Code:} github.com/6hammad9/heidi-lead-pipeline
-  \note{The pipeline is built to be re-run, so the list improves over time at very low cost.}
+  Code, method and write-up: \textbf{github.com/6hammad9/heidi-lead-pipeline}
+  \note{The method is built to be improved: every weight is in one config file, and every
+  assumption is labelled, so Heidi's data can replace them one by one.}
 \end{frame}
 
 \end{document}
