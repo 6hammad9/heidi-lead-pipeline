@@ -297,6 +297,6 @@ Consequences:
 
 ## Open decisions / not yet locked
 
-- Deliverable format: Excel (.xlsx) — no Google Sheets/Drive connector
-  available in this environment, user can import to Sheets themselves.
-  Write-up as an Artifact (shareable webpage).
+- Deliverable format (decided 2026-11-07 by user): **Excel** (`output/heidi_leads_berlin.xlsx`),
+  sent as an attachment, which the case study accepts. The direct Google Sheets export exists
+  but stays inactive unless GOOGLE_SHEET_ID is set. Write-up as an Artifact (shareable page).
