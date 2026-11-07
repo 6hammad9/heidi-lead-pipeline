@@ -72,6 +72,7 @@ def test_evidence_lists_quote_and_source_per_known_value() -> None:
     evidence = column(lead_rows(COMPANIES, scores), "Evidence")[0]
     assert "units_managed: „q“ — https://a.de" in evidence
     assert "contact Anna: „Anna, GF“ — https://big.de" in evidence
+    assert "\n" not in evidence  # Google Sheets makes rows with line breaks tall
 
 
 def test_workbook_has_three_tabs_and_readable_rows(tmp_path: Path) -> None:

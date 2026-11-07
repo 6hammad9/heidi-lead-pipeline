@@ -63,7 +63,7 @@ def _lead_row(rank: int, c: Company, s: LeadScore) -> list[object]:
         _value(c.association), _value(c.growth), _value(c.employees), _value(c.properties),
         _value(c.remote_reading), _value(c.metering_provider),
         c.phone, _value(c.general_email) or c.email_general, c.street, c.postcode, _evidence(c),
-        _status(c), c.research_notes,
+        _status(c), _one_line(c.research_notes),
         ", ".join(sorted({ref.source for ref in c.sources})),
     ]  # fmt: skip
 
@@ -80,9 +80,17 @@ def _value(fact: Fact) -> object:
     return fact.value if known(fact) else None
 
 
+EVIDENCE_SEPARATOR = " | "  # not "\n": Google Sheets makes any row with line breaks tall
+
+
+def _one_line(text: str | None) -> str | None:
+    """Quotes copied from bullet lists carry line breaks; the sheet keeps one line per company."""
+    return " ".join(text.split()) if text else text
+
+
 def _evidence(c: Company) -> str | None:
     lines = [
-        f"{name}: „{fact.quote}“ — {fact.source_url}"
+        f"{name}: „{_one_line(fact.quote)}“ — {fact.source_url}"
         for name in (
             "units_managed",
             "residential_share",
@@ -95,8 +103,12 @@ def _evidence(c: Company) -> str | None:
         )  # fmt: skip
         if known(fact := getattr(c, name))
     ]
-    lines += [f"contact {p.name}: „{p.quote}“ — {p.source_url}" for p in c.contacts if p.verified]
-    return "\n".join(lines) or None
+    lines += [
+        f"contact {p.name}: „{_one_line(p.quote)}“ — {p.source_url}"
+        for p in c.contacts
+        if p.verified
+    ]
+    return EVIDENCE_SEPARATOR.join(lines) or None
 
 
 def run_log_rows(
