@@ -17,7 +17,7 @@ from pipeline.checkpoint import CheckpointStore
 from pipeline.collectors.google_places import collect_google_places
 from pipeline.collectors.osm import collect_osm
 from pipeline.dedupe import merge_companies
-from pipeline.evaluation import compare, read_truth, write_template
+from pipeline.evaluation import compare, read_truth, unreachable_ids, write_template
 from pipeline.export.excel import write_workbook
 from pipeline.export.google_sheets import sheets_configured, write_google_sheet
 from pipeline.export.table import KPI_DEFINITIONS, LEAD_COLUMNS, lead_rows, run_log_rows
@@ -178,10 +178,13 @@ def run_eval_template(args: argparse.Namespace) -> None:
 def run_evaluate(args: argparse.Namespace) -> None:
     records = CheckpointStore(config.RESEARCH_DIR, args.model).load_all()
     companies, _ = build_verified(load_companies(MERGED_FILE), records, PageStore(config.PAGES_DIR))
-    results = compare(read_truth(EVAL_TEMPLATE), companies)
+    truth = read_truth(EVAL_TEMPLATE)
+    results = compare(truth, companies)
     correct, total = sum(r.correct for r in results), sum(r.total for r in results)
     share = 100 * correct / total if total else 0
     log.info("Accuracy of %s: %d/%d fields (%.0f%%)", args.model, correct, total, share)
+    if skipped := unreachable_ids(truth, companies):
+        log.info("  not counted, site unreachable for the agent: %s", ", ".join(skipped))
     for r in results:
         log.info("  %-18s %d/%d %s", r.field, r.correct, r.total, "; ".join(r.misses))
 

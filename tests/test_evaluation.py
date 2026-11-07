@@ -2,7 +2,7 @@ from pathlib import Path
 
 from openpyxl import load_workbook
 
-from pipeline.evaluation import EVAL_FIELDS, compare, read_truth, write_template
+from pipeline.evaluation import EVAL_FIELDS, compare, read_truth, unreachable_ids, write_template
 from pipeline.models import Company, Fact, Status
 
 
@@ -36,6 +36,20 @@ def test_template_round_trip_and_comparison(tmp_path: Path) -> None:
     assert results["residential_share"].correct == 1  # both unknown
     assert results["buyer_type"].correct == 0 and results["software"].correct == 0
     assert "expected 'third_party_weg'" in results["buyer_type"].misses[0]
+
+
+def test_unreachable_site_is_not_counted(tmp_path: Path) -> None:
+    path = tmp_path / "truth.xlsx"
+    write_template(path, [Company(id="a.de", name="A"), Company(id="b.de", name="B")])
+    wb = load_workbook(path)
+    wb["Ground truth"].cell(2, 4, 1600)  # a.de units: the agent could not see the site
+    wb.save(path)
+    blocked = Company(id="a.de", name="A", research_status="no_pages")
+    researched = Company(id="b.de", name="B", research_status="submitted")
+    truth = read_truth(path)
+    results = compare(truth, [blocked, researched])
+    assert unreachable_ids(truth, [blocked, researched]) == ["a.de"]
+    assert all(r.total == 1 and r.correct == 1 for r in results)
 
 
 def test_unverified_agent_value_counts_as_unknown(tmp_path: Path) -> None:

@@ -21,6 +21,9 @@ CHOICES = {
     ),
 }
 UNITS_TOLERANCE = 0.1  # "über 2.000" vs 2.100 on another page still agrees
+# The agent never saw these sites (robots.txt, dead or blocked), so they say nothing about its
+# accuracy; they are reported separately instead of counted as misses.
+UNREACHABLE_STOP = "no_pages"
 
 
 class FieldResult(BaseModel):
@@ -55,10 +58,11 @@ def read_truth(path: Path) -> dict[str, dict[str, object]]:
 
 def compare(truth: dict[str, dict[str, object]], companies: list[Company]) -> list[FieldResult]:
     by_id = {c.id: c for c in companies}
+    unreachable = set(unreachable_ids(truth, companies))
+    checked = [cid for cid in truth if cid in by_id and cid not in unreachable]
     results = []
     for field in EVAL_FIELDS:
         misses = []
-        checked = [cid for cid in truth if cid in by_id]
         for cid in checked:
             expected, fact = truth[cid].get(field), getattr(by_id[cid], field)
             got = fact.value if known(fact) else None
@@ -67,6 +71,10 @@ def compare(truth: dict[str, dict[str, object]], companies: list[Company]) -> li
         correct = len(checked) - len(misses)
         results.append(FieldResult(field=field, correct=correct, total=len(checked), misses=misses))
     return results
+
+
+def unreachable_ids(truth: dict[str, dict[str, object]], companies: list[Company]) -> list[str]:
+    return [c.id for c in companies if c.id in truth and c.research_status == UNREACHABLE_STOP]
 
 
 def _agrees(field: str, expected: object, got: object) -> bool:
