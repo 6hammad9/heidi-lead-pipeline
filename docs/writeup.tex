@@ -234,15 +234,28 @@ command runs the whole pipeline with no manual steps: \code{python -m pipeline.m
 Agent claims confirmed on the cited page & 3,945 / 4,127 (96\%) \\
 Named contacts confirmed on the cited page & 1,601 / 1,686 (95\%) \\
 Quality gate after 25 companies & passed: 0\% failures, 97\% verified \\
-Accuracy against 10 hand-checked companies (Haiku) & \textcolor{assume}{pending} \\
+Accuracy against hand-checked companies (Haiku) & 41 / 45 fields (91\%) \\
 Haiku vs Sonnet on 5 of those companies & \textcolor{assume}{pending} \\
 \bottomrule
 \end{tabularx}
 
 The verification rate shows the agent doesn't invent quotes. The hand-checked test measures
-something different: whether it finds the right facts and doesn't miss any. For that test, I
-checked 10 companies' websites by hand without looking at the agent's answers, and the code
-compares the two field by field.
+something different: whether it finds the right facts and doesn't miss any. For that test I
+checked 10 companies' websites by hand, without looking at the agent's answers, and the code
+compares the two field by field (units, residential share, buyer type, software, association).
+
+\begin{itemize}
+  \item \textbf{One site doesn't count:} its robots.txt blocks crawlers, so the agent never saw
+        it. The remaining 9 companies give 45 fields.
+  \item \textbf{Units, software and association: 27 of 27 correct.} The agent also found a figure
+        the hand check had missed ("more than 7,000 apartments" on an English page). The answer
+        key was corrected.
+  \item \textbf{The 4 misses are cautious, not invented.} Two are ``unknown'' because the agent
+        didn't open the one subpage that described the services. One is ``unknown'' because its
+        quote combined two list items, so the strict quote check rejected it. One is a borderline
+        call (rental-focused vs.\ unclear).
+  \item The agent never stated a number or membership that wasn't on the site.
+\end{itemize}
 
 %--------------------------------------------------------------------
 \section{Results}
