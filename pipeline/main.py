@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from pipeline import config
 from pipeline.agent.ledger import SpendLedger
 from pipeline.agent.research_agent import ResearchAgent
+from pipeline.agent.schema import ResearchRecord
 from pipeline.checkpoint import CheckpointStore
 from pipeline.collectors.google_places import collect_google_places
 from pipeline.collectors.osm import collect_osm
@@ -22,7 +23,8 @@ from pipeline.fetching.fetcher import PageFetcher
 from pipeline.fetching.page_store import PageStore
 from pipeline.fetching.robots import RobotsPolicy
 from pipeline.models import Company
-from pipeline.research_step import run_research
+from pipeline.quality_gate import GateResult, evaluate
+from pipeline.research_step import Gate, run_research
 from pipeline.scoring import score_all
 from pipeline.utils.http import HttpClient
 from pipeline.utils.io import load_companies, save_companies
@@ -75,11 +77,13 @@ def run_merge(args: argparse.Namespace) -> None:
 
 def run_research_step(args: argparse.Namespace) -> None:
     http = HttpClient()
-    fetcher = PageFetcher(http, PageStore(config.PAGES_DIR), RobotsPolicy(http))
+    pages = PageStore(config.PAGES_DIR)
+    fetcher = PageFetcher(http, pages, RobotsPolicy(http))
     ledger = SpendLedger(config.SPEND_LEDGER)
     agent = ResearchAgent(anthropic.Anthropic(), args.model, fetcher, ledger, effort=args.effort)
+    companies = load_companies(MERGED_FILE)
     summary = run_research(
-        load_companies(MERGED_FILE),
+        companies,
         agent,
         CheckpointStore(config.RESEARCH_DIR, args.model),
         ledger,
@@ -87,8 +91,29 @@ def run_research_step(args: argparse.Namespace) -> None:
         reserve_per_company_usd=config.AGENT_MAX_COST_PER_COMPANY_USD,
         limit=args.limit,
         only_ids=read_ids(args.ids) if args.ids else None,
+        gate=make_gate(companies, pages),
     )
     log.info("Research summary: %s", summary.model_dump_json())
+
+
+def make_gate(companies: list[Company], pages: PageStore) -> Gate:
+    """The gate re-runs the code-side quote check on this run's records."""
+    by_id = {c.id: c for c in companies}
+
+    def gate(records: list[ResearchRecord]) -> GateResult:
+        researched = [by_id[r.company_id] for r in records if r.company_id in by_id]
+        _, stats = build_verified(researched, records, pages)
+        return evaluate(records, stats)
+
+    return gate
+
+
+def run_all(args: argparse.Namespace) -> None:
+    """The whole pipeline, no manual steps. Collected data is reused unless --refresh."""
+    if args.refresh or not list(config.INTERIM_DIR.glob("collected_*.json")):
+        run_collect(args)
+    for step in (run_merge, run_research_step, run_verify, run_export):
+        step(args)
 
 
 def run_verify(args: argparse.Namespace) -> None:
@@ -135,6 +160,7 @@ STEPS: dict[str, Callable[[argparse.Namespace], None]] = {
     "research": run_research_step,
     "verify": run_verify,
     "export": run_export,
+    "all": run_all,
 }
 
 
@@ -151,10 +177,15 @@ def main() -> None:
     parser.add_argument("--model", choices=config.MODEL_PRICES, default=config.AGENT_MODEL)
     parser.add_argument("--effort", default=config.AGENT_EFFORT)
     parser.add_argument(
-        "--limit", type=int, default=config.BATCH_SIZE, help="companies per research run"
+        "--limit",
+        type=int,
+        help=f"companies per research run (research: {config.BATCH_SIZE}, all: no limit)",
     )
     parser.add_argument("--ids", type=Path, help="file of company ids to research (one per line)")
+    parser.add_argument("--refresh", action="store_true", help="all: collect sources again")
     args = parser.parse_args()
+    if args.limit is None and args.step == "research":
+        args.limit = config.BATCH_SIZE
     load_dotenv()
     setup_logging()
     STEPS[args.step](args)

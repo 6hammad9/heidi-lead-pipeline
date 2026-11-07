@@ -116,6 +116,13 @@ AGENT_MAX_SUBMIT_CORRECTIONS = 1  # then invalid claims are nulled and the rest 
 AGENT_MAX_COST_PER_COMPANY_USD = 0.05  # Haiku expected ~$0.003/company; stops runaway loops
 AGENT_RUN_BUDGET_USD = 4.00  # all Anthropic spend in the ledger, kept below the €5 credit
 SPEND_LEDGER = DATA_DIR / "anthropic_spend.jsonl"
+# Automatic quality gate (RULEBOOK → Automation principle): checked once per run after this many
+# researched companies; outside a limit the run stops itself before spending more.
+GATE_AFTER_COMPANIES = 25
+GATE_MAX_FAILURE_RATE = 0.2  # errors, turn/cost caps, invalid or refused submissions
+GATE_MIN_VERIFIED_RATE = 0.8  # agent claims whose quote code finds on the cited page
+GATE_MAX_UNKNOWN_RATE = 0.95  # almost nothing found suggests broken fetching or prompt
+GATE_MAX_AVG_COST_USD = 0.01  # per researched company (measured ~$0.002)
 # Researched first (name contains one of these), so a budget stop cuts the least likely leads.
 RESEARCH_PRIORITY_NAME_KEYWORDS = [
     "verwalt",

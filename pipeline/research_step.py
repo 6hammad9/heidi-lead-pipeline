@@ -7,6 +7,7 @@ still fit the budget: the run stops before a call that could overspend, not afte
 """
 
 import logging
+from collections.abc import Callable
 from datetime import UTC, datetime
 from typing import Literal, Protocol
 
@@ -16,11 +17,13 @@ from pipeline import config
 from pipeline.agent.contracts import SpendRecorder
 from pipeline.agent.schema import ResearchRecord
 from pipeline.models import Company
+from pipeline.quality_gate import GateResult
 from pipeline.utils.urls import domain_of, is_platform_domain
 
 log = logging.getLogger(__name__)
 
-StopReason = Literal["complete", "batch_limit", "budget"]
+StopReason = Literal["complete", "batch_limit", "budget", "quality_gate"]
+Gate = Callable[[list[ResearchRecord]], GateResult]
 
 
 class Researcher(Protocol):
@@ -90,6 +93,7 @@ def run_research(
     reserve_per_company_usd: float,
     limit: int | None,
     only_ids: set[str] | None = None,
+    gate: Gate | None = None,
 ) -> RunSummary:
     """Research the selected companies in id order until each has a checkpoint, the budget has
     no room for one more company, or `limit` companies were processed in this run (None: no
@@ -99,6 +103,7 @@ def run_research(
         selected=len(selected), skipped_without_website=without_website, missing_ids=missing
     )
     _log_start(summary, agent.model, ledger.total_usd(), budget_usd)
+    run_records: list[ResearchRecord] = []
     for index, company in enumerate(selected):
         if checkpoints.is_done(company.id):
             summary.already_done += 1
@@ -114,8 +119,30 @@ def run_research(
         record = _research_one(agent, company)
         checkpoints.save(record)
         _add_record(summary, record)
+        run_records.append(record)
+        if (
+            gate
+            and len(run_records) == config.GATE_AFTER_COMPANIES
+            and _gate_fails(gate, run_records)
+        ):
+            _mark_stopped(summary, "quality_gate", selected[index + 1 :], checkpoints)
+            break
     _log_finish(summary, ledger.total_usd(), budget_usd)
     return summary
+
+
+def _gate_fails(gate: Gate, records: list[ResearchRecord]) -> bool:
+    result = gate(records)
+    if result.passed:
+        log.info("Quality gate passed after %d companies: %s", len(records), result.metrics)
+        return False
+    log.warning(
+        "Quality gate FAILED after %d companies, stopping before spending more: %s (%s)",
+        len(records),
+        "; ".join(result.reasons),
+        result.metrics,
+    )
+    return True
 
 
 def _stop_reason(
