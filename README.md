@@ -18,6 +18,7 @@ Built for the Heidi Systems *AI Agent Builder* case study.
 - Methodology and every decision with its source: [RULEBOOK.md](RULEBOOK.md)
 - Column-by-column KPI spec: [KPI_LIST.md](KPI_LIST.md)
 - Write-up for the case study: [docs/writeup.tex](docs/writeup.tex)
+- Presentation: [docs/presentation.tex](docs/presentation.tex)
 - Coding standards: [CLAUDE.md](CLAUDE.md)
 
 ## How it works

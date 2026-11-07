@@ -1,0 +1,247 @@
+% Presentation: Berlin Hausverwaltung Leads (Heidi Systems case study).
+% Beamer source; one frame = one slide. Each slide has a short speaker note (\note).
+\documentclass[aspectratio=169,11pt]{beamer}
+
+\usetheme{default}
+\usecolortheme{default}
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{booktabs}
+
+\definecolor{accent}{HTML}{0B6A70}
+\definecolor{assume}{HTML}{9A4F0A}
+\setbeamercolor{frametitle}{fg=accent}
+\setbeamercolor{title}{fg=accent}
+\setbeamercolor{structure}{fg=accent}
+\newcommand{\ev}{\textcolor{accent}{Evidence}}
+\newcommand{\as}{\textcolor{assume}{Assumption}}
+
+\title{Berlin Hausverwaltung Leads}
+\subtitle{An AI agent that finds, researches and scores property managers for Heidi Systems}
+\author{Hammad Naseer}
+\date{Case study \textbullet{} AI Agent Builder \textbullet{} November 2026}
+
+\begin{document}
+
+%--------------------------------------------------------------------
+\begin{frame}
+  \titlepage
+  \note{One automated pipeline: it finds every Berlin Hausverwaltung, reads their websites with
+  an AI agent, checks every claim, and ranks them as leads.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{The result in one slide}
+  \begin{columns}[T]
+    \column{0.5\textwidth}
+    \begin{itemize}
+      \item \textbf{2,080} Berlin companies
+      \item \textbf{1,563} websites researched by the agent
+      \item \textbf{96\%} of agent claims confirmed on the source page
+      \item \textbf{91\%} accuracy against a hand check
+    \end{itemize}
+    \column{0.5\textwidth}
+    \begin{itemize}
+      \item \textbf{1,098} named contacts, \textbf{1,070} company emails
+      \item \textbf{\$2.93} AI cost for the full run
+      \item \textbf{1 command}, no manual steps
+      \item Delivered as an Excel file, a write-up and code on GitHub
+    \end{itemize}
+  \end{columns}
+  \note{The headline numbers. Everything after this explains how they were produced and how far
+  they can be trusted.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{Method first, KPIs second}
+  \begin{enumerate}
+    \item \textbf{Goal-Question-Metric:} one goal, five questions, one KPI per question
+    \item \textbf{SMART check:} a KPI that can't be measured or found becomes an info column
+    \item \textbf{Three tests:} does it predict deal value, does it vary across companies, can
+          we actually get the data?
+    \item \textbf{Weighted score:} weights 3 / 2 / 1, each KPI scored 0--5
+  \end{enumerate}
+  \vspace{1em}
+  Every scoring choice is labelled \ev{} (with a source) or \as{} (stated openly).
+  \note{I didn't pick KPIs from whatever data was easy to find. The method came first, so every
+  column can be traced back to a question and a source.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{Goal: the most valuable, most winnable customers}
+  \begin{tabular}{@{}p{6.6cm} p{6.2cm}@{}}
+    \toprule
+    \textbf{Question} & \textbf{KPI} \\
+    \midrule
+    Q1 How much metering volume? & Units managed \\
+    Q2 Covered by HeizkostenV billing? & Residential share \\
+    Q3 Who signs, and can we win it? & Buyer type (+ association bonus) \\
+    Q4 How easy to switch to Heidi? & Uses software Heidi integrates with \\
+    Q5 Why act now? & 31 Dec 2026 deadline (whole market) \\
+    \bottomrule
+  \end{tabular}
+  \note{Five questions a salesperson would ask. Q5 applies to every company, so it's the pitch
+  rather than a score.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{The scored KPIs}
+  \small
+  \begin{tabular}{@{}p{3.2cm} p{2.0cm} p{8.0cm}@{}}
+    \toprule
+    \textbf{KPI} & \textbf{Weight} & \textbf{Why} \\
+    \midrule
+    Units managed & 3 (critical) & \ev: Heidi prices per unit, so revenue scales with units \\
+    Residential share & 2 & \as: residential portfolios need more heating-cost billing \\
+    Buyer type & 2 & \ev: rental managers can sign; in a WEG the owners vote (\S\,19 WEG);
+      municipal companies run metering in-house \\
+    Heidi software & 1 & \ev: Heidi integrates with Domus, Immoware24, Wodis, Immocloud \\
+    Association, growth & +3 bonus each & \as: signals of professionalism and growth \\
+    \bottomrule
+  \end{tabular}
+  \note{Size matters most because Heidi charges per unit. Buyer type matters because it decides
+  who signs the contract.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{Scoring rules}
+  \[
+  \text{Lead score} = \frac{\sum \text{weight} \times \text{score}}{\sum \text{weight of
+  \emph{known} KPIs}} \times 18.8 + \text{bonus} \quad (0\text{--}100)
+  \]
+  \begin{itemize}
+    \item \textbf{Unknown is not zero:} a KPI a site doesn't mention is left out of the average
+    \item \textbf{Confidence flag:} Low when size is unknown or less than half of the weight is known
+    \item \textbf{No double counting:} employees and buildings only \emph{estimate} units
+          (150 units per employee, based on 64 companies)
+    \item \textbf{Lead quality and reachability kept apart:} contact status is its own column
+  \end{itemize}
+  \note{Counting unknown as zero would rank small companies with detailed websites above big ones
+  that publish little.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{Why now: the HeizkostenV deadline}
+  \begin{itemize}
+    \item Existing meters that can't be read remotely must be retrofitted or replaced
+          \textbf{by 31 December 2026} (\S\,5 Abs.\,3)
+    \item Otherwise tenants may cut their heating-cost share by \textbf{3\%} (\S\,12)
+    \item Once meters can be read remotely, consumption information is due \textbf{monthly} (\S\,6a)
+    \item Metering contracts often run up to 10 years, so the retrofit is a natural moment to
+          switch provider (\as)
+  \end{itemize}
+  \note{Checked against the official text on gesetze-im-internet.de. This is the reason to call
+  these companies now.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{The pipeline: AI for judgement, code for exactness}
+  \begin{enumerate}
+    \item \textbf{Collect} (code): Google Places in map cells + OpenStreetMap
+    \item \textbf{Merge} (code): duplicates by website domain, then by name
+    \item \textbf{Fetch} (code): up to 6 pages per site, robots.txt respected
+    \item \textbf{Research} (AI): the agent reads the pages and submits facts with quotes
+    \item \textbf{Verify} (code): every quote checked against the page
+    \item \textbf{Score \& export} (code): the formula, written to Excel
+  \end{enumerate}
+  \vspace{0.5em}
+  One command: \texttt{python -m pipeline.main all}
+  \note{The AI never calculates a score. It only reads websites and extracts facts.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{The agent: evidence or unknown}
+  \begin{itemize}
+    \item Model: \textbf{Claude Haiku 5.5}, about \$0.002 per company
+    \item Every value needs a \textbf{source URL and a word-for-word quote}, or it must say ``unknown''
+    \item Two tools only: \texttt{fetch\_page} (same site only) and \texttt{submit\_record}
+          (strict schema)
+    \item Code re-checks every quote, and numbers must appear in the quote
+    \item Our own page fetching instead of paid web search, plus prompt caching, keeps the cost low
+  \end{itemize}
+  \note{The agent is not trusted. Its claims are verified by code, and anything that fails
+  becomes unknown.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{Guardrails: it runs unattended}
+  \begin{itemize}
+    \item \textbf{Budget:} hard stop at \$4 total and a cap per company
+    \item \textbf{Quality gate:} after 25 companies the run checks failures, verification rate and
+          cost, and stops itself if any is out of range
+    \item \textbf{Restartable:} each company is saved as soon as it's done
+    \item \textbf{Polite:} robots.txt respected, blocked sites skipped, never worked around
+    \item \textbf{Tested:} 248 automated tests
+  \end{itemize}
+  \note{The full run took about 7 hours overnight with nobody watching it.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{Validation}
+  \begin{tabular}{@{}p{8.2cm} p{4.6cm}@{}}
+    \toprule
+    \textbf{Check} & \textbf{Result} \\
+    \midrule
+    Claims confirmed on the cited page & 3,945 / 4,127 (96\%) \\
+    Contacts confirmed on the cited page & 1,601 / 1,686 (95\%) \\
+    Accuracy vs. hand-checked websites & 41 / 45 fields (91\%) \\
+    Haiku vs. Sonnet on the same 5 companies & 21 vs. 22 of 25 \\
+    Cost per company, Haiku vs. Sonnet & \$0.002 vs. \$0.033 \\
+    \bottomrule
+  \end{tabular}
+  \vspace{0.6em}
+
+  The misses were cautious ``unknowns'', never invented values. Sonnet is barely better at 15
+  times the cost, so Haiku runs the list.
+  \note{The verification rate proves the quotes are real. The hand check proves the answers are
+  right.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{What's in the Excel file}
+  \begin{tabular}{@{}p{9.4cm} r@{}}
+    \toprule
+    Scored, confidence OK & 242 \\
+    Scored, confidence Low (size unknown) & 904 \\
+    Excluded: not a property manager (brokers, caretakers) & 417 \\
+    Site dead or blocked & 219 \\
+    No own website (kept with phone and address) & 517 \\
+    \midrule
+    Named contact \textbullet{} with personal email \textbullet{} company email & 1,098 \textbullet{} 88 \textbullet{} 1,070 \\
+    \bottomrule
+  \end{tabular}
+  \note{Sorted by lead score. Every value has its source link and quote in the Evidence column.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{What the data showed}
+  \begin{itemize}
+    \item \textbf{Size is rarely published:} only 178 companies state their units (median 2,000)
+    \item \textbf{About a quarter of Google's results aren't Hausverwaltungen:} 417 excluded
+    \item \textbf{Decision-maker emails are scarce:} most sites name a director but give only
+          an office email
+    \item \textbf{Municipal companies meter in-house:} degewo and STADT UND LAND use their own
+          subsidiaries
+    \item \textbf{Software and metering provider are rarely named:} 82 and 7 companies
+  \end{itemize}
+  \note{These findings shape the next step: size and the decision-maker's email are the gaps to
+  close.}
+\end{frame}
+
+%--------------------------------------------------------------------
+\begin{frame}{Limits and next steps}
+  \begin{itemize}
+    \item Validate the \as{} weights against Heidi's real win data
+    \item Re-check the top-scored leads with a stronger model
+    \item Cover the 517 companies without a website (directories, phone)
+    \item LinkedIn not searched (terms of service), so contacts come from company websites only
+    \item Schedule a weekly run: it only researches new companies
+  \end{itemize}
+  \vspace{1em}
+  \textbf{Code:} github.com/6hammad9/heidi-lead-pipeline
+  \note{The pipeline is built to be re-run, so the list improves over time at very low cost.}
+\end{frame}
+
+\end{document}
