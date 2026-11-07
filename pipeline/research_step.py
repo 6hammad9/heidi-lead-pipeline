@@ -73,9 +73,12 @@ def select_companies(
 
 def _research_order(company: Company) -> tuple[int, str]:
     """Likely property managers first, so a budget stop cuts the least relevant companies."""
+    return (0 if likely_property_manager(company) else 1, company.id)
+
+
+def likely_property_manager(company: Company) -> bool:
     name = company.name.lower()
-    likely = any(keyword in name for keyword in config.RESEARCH_PRIORITY_NAME_KEYWORDS)
-    return (0 if likely else 1, company.id)
+    return any(keyword in name for keyword in config.RESEARCH_PRIORITY_NAME_KEYWORDS)
 
 
 def _has_own_website(company: Company) -> bool:

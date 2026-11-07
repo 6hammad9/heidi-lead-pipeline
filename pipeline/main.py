@@ -17,6 +17,7 @@ from pipeline.checkpoint import CheckpointStore
 from pipeline.collectors.google_places import collect_google_places
 from pipeline.collectors.osm import collect_osm
 from pipeline.dedupe import merge_companies
+from pipeline.evaluation import compare, read_truth, write_template
 from pipeline.export.excel import write_workbook
 from pipeline.export.table import KPI_DEFINITIONS, lead_rows, run_log_rows
 from pipeline.fetching.fetcher import PageFetcher
@@ -24,7 +25,7 @@ from pipeline.fetching.page_store import PageStore
 from pipeline.fetching.robots import RobotsPolicy
 from pipeline.models import Company
 from pipeline.quality_gate import GateResult, evaluate
-from pipeline.research_step import Gate, run_research
+from pipeline.research_step import Gate, likely_property_manager, run_research, select_companies
 from pipeline.scoring import score_all
 from pipeline.utils.http import HttpClient
 from pipeline.utils.io import load_companies, save_companies
@@ -39,6 +40,9 @@ COLLECTORS: dict[str, Callable[[HttpClient], list[Company]]] = {
 }
 MERGED_FILE = config.INTERIM_DIR / "companies_merged.json"
 VERIFIED_FILE = config.INTERIM_DIR / "companies_verified.json"
+EVAL_SIZE = 10
+EVAL_IDS = config.DATA_DIR / "eval" / "eval10.txt"
+EVAL_TEMPLATE = config.DATA_DIR / "eval" / "ground_truth.xlsx"
 
 
 def run_collect(args: argparse.Namespace) -> None:
@@ -148,6 +152,30 @@ def run_export(args: argparse.Namespace) -> None:
     log.info("Exported %d companies (%d scored) to %s", len(companies), scored, config.OUTPUT_XLSX)
 
 
+def run_eval_template(args: argparse.Namespace) -> None:
+    """10 likely property managers spread over the list, and a blank template to check by hand."""
+    if EVAL_TEMPLATE.exists():
+        log.warning("%s exists; not overwriting hand-checked work", EVAL_TEMPLATE)
+        return
+    selected, _, _ = select_companies(load_companies(MERGED_FILE), None)
+    managers = [c for c in selected if likely_property_manager(c)]
+    picks = managers[:: max(len(managers) // EVAL_SIZE, 1)][:EVAL_SIZE]
+    EVAL_IDS.write_text("\n".join(c.id for c in picks) + "\n", encoding="utf-8")
+    write_template(EVAL_TEMPLATE, picks)
+    log.info("Accuracy test: %d companies in %s; fill %s", len(picks), EVAL_IDS, EVAL_TEMPLATE)
+
+
+def run_evaluate(args: argparse.Namespace) -> None:
+    records = CheckpointStore(config.RESEARCH_DIR, args.model).load_all()
+    companies, _ = build_verified(load_companies(MERGED_FILE), records, PageStore(config.PAGES_DIR))
+    results = compare(read_truth(EVAL_TEMPLATE), companies)
+    correct, total = sum(r.correct for r in results), sum(r.total for r in results)
+    share = 100 * correct / total if total else 0
+    log.info("Accuracy of %s: %d/%d fields (%.0f%%)", args.model, correct, total, share)
+    for r in results:
+        log.info("  %-18s %d/%d %s", r.field, r.correct, r.total, "; ".join(r.misses))
+
+
 def read_ids(path: Path) -> set[str]:
     """One company id per line; blank lines and # comments ignored."""
     lines = path.read_text(encoding="utf-8").splitlines()
@@ -161,6 +189,8 @@ STEPS: dict[str, Callable[[argparse.Namespace], None]] = {
     "verify": run_verify,
     "export": run_export,
     "all": run_all,
+    "eval-template": run_eval_template,
+    "evaluate": run_evaluate,
 }
 
 
