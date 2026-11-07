@@ -89,6 +89,20 @@ def test_email_not_on_the_page_is_removed() -> None:
     assert company.contacts[0].email is None and not company.contacts[0].email_published
 
 
+def test_general_email_must_appear_on_the_page() -> None:
+    real = {
+        "value": "a.mueller@hv-mueller.de",
+        "source_url": SITE,
+        "quote": "a.mueller@hv-mueller.de",
+    }
+    made_up = {"value": "info@hv-mueller.de", "source_url": SITE, "quote": "Dr. Anna Müller"}
+    company, _ = verify_company(researched(submission(general_email=real)), [PAGE])
+    assert company.general_email.verified
+    company, stats = verify_company(researched(submission(general_email=made_up)), [PAGE])
+    assert company.general_email.status is Status.UNKNOWN
+    assert stats.failures == ["general_email: email address not on the cited page"]
+
+
 def test_apply_maps_enums_and_unknowns() -> None:
     claim = {"value": "mainly_residential", "source_url": SITE, "quote": "x"}
     company = researched(submission(residential_share=claim))

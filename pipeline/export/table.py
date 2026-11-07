@@ -5,6 +5,7 @@ from datetime import datetime
 from pipeline import config
 from pipeline.models import Company, Fact
 from pipeline.scoring import LeadScore, UnitModel, known
+from pipeline.utils.urls import domain_of, is_platform_domain
 
 LEAD_COLUMNS = [
     "Rank", "Company", "Website", "Lead score", "Confidence", "Data completeness",
@@ -61,10 +62,18 @@ def _lead_row(rank: int, c: Company, s: LeadScore) -> list[object]:
         _value(c.residential_share), _value(c.buyer_type), _value(c.software),
         _value(c.association), _value(c.growth), _value(c.employees), _value(c.properties),
         _value(c.remote_reading), _value(c.metering_provider),
-        c.phone, c.email_general, c.street, c.postcode, _evidence(c),
-        c.research_status or "not researched", c.research_notes,
+        c.phone, _value(c.general_email) or c.email_general, c.street, c.postcode, _evidence(c),
+        _status(c), c.research_notes,
         ", ".join(sorted({ref.source for ref in c.sources})),
     ]  # fmt: skip
+
+
+def _status(c: Company) -> str:
+    if c.research_status:
+        return c.research_status
+    domain = domain_of(c.website)
+    has_site = domain is not None and not is_platform_domain(domain)
+    return "not researched yet" if has_site else "no own website"
 
 
 def _value(fact: Fact) -> object:

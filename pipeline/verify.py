@@ -96,6 +96,8 @@ def _fact_problem(name: str, fact: Fact, index: dict[str, Page]) -> str | None:
         return "quote not found on the cited page"
     if name in INT_FIELDS and fact.value not in numbers_in(fact.quote or ""):
         return f"number {fact.value} not in the quote"
+    if name == "general_email" and str(fact.value).casefold() not in page.text.casefold():
+        return "email address not on the cited page"
     return None
 
 

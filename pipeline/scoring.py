@@ -141,7 +141,7 @@ def contact_status(company: Company) -> str:
         return "Named + LinkedIn"
     if named:
         return "Named only"
-    return "Generic only" if company.email_general else "None"
+    return "Generic only" if known(company.general_email) or company.email_general else "None"
 
 
 def score_all(companies: list[Company]) -> tuple[list[LeadScore], UnitModel]:

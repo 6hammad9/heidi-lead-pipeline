@@ -79,6 +79,7 @@ class ResearchSubmission(_Strict):
     properties: IntClaim
     remote_reading: TextClaim
     metering_provider: TextClaim
+    general_email: TextClaim
     contacts: list[ContactClaim]
     notes: str | None
 

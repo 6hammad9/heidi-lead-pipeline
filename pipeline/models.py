@@ -80,6 +80,7 @@ class Company(BaseModel):
     properties: Fact = Field(default_factory=Fact)
     remote_reading: Fact = Field(default_factory=Fact)
     metering_provider: Fact = Field(default_factory=Fact)
+    general_email: Fact = Field(default_factory=Fact)
 
     contacts: list[Contact] = Field(default_factory=list)
     research_status: str | None = None  # the agent's stop reason; None = not researched

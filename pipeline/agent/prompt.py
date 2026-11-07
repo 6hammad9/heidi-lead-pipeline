@@ -65,6 +65,8 @@ You get the text of pages from the company's own website. Record what those page
   A short description.
 - metering_provider: a named metering or heating cost billing provider (for example ista,
   Techem, Minol, Brunata-Metrona, Kalorimeta). The provider's name.
+- general_email: the company's general email address (info@, kontakt@, verwaltung@ ...), usually
+  in the Impressum or on the contact page. Copy it exactly; the quote must contain it.
 - contacts: up to 3 named people who would decide on a metering service: managing directors
   (Geschäftsführer/in, Inhaber/in, Vorstand), heads of property management, of operating or
   heating cost billing (Betriebskosten-, Heizkostenabrechnung) or of the technical department.

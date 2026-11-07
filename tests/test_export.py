@@ -55,6 +55,18 @@ def test_rows_are_ranked_scored_first_then_unresearched_then_excluded() -> None:
     assert column(rows, "Contact")[0] == "Anna"
 
 
+def test_unresearched_rows_say_why() -> None:
+    companies = [
+        Company(id="a.de", name="A", website="https://a.de"),
+        Company(id="osm:1", name="B"),
+        Company(id="osm:2", name="C", website="https://facebook.com/c"),
+    ]
+    scores, _ = score_all(companies)
+    rows = lead_rows(companies, scores)
+    statuses = dict(zip(column(rows, "Company"), column(rows, "Research status"), strict=True))
+    assert statuses == {"A": "not researched yet", "B": "no own website", "C": "no own website"}
+
+
 def test_evidence_lists_quote_and_source_per_known_value() -> None:
     scores, _ = score_all(COMPANIES)
     evidence = column(lead_rows(COMPANIES, scores), "Evidence")[0]
