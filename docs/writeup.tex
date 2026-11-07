@@ -1,0 +1,341 @@
+% Case study write-up: Berlin Hausverwaltung leads for Heidi Systems.
+% Compile with pdflatex (e.g. on overleaf.com: New Project > Upload Project > this file).
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage[a4paper,margin=2.2cm]{geometry}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage[table]{xcolor}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{fancyvrb}
+\usepackage[hidelinks]{hyperref}
+
+\newcommand{\repourl}{https://github.com/USERNAME/heidi-lead-pipeline}
+
+\definecolor{accent}{HTML}{0B6A70}
+\definecolor{assume}{HTML}{9A4F0A}
+\definecolor{muted}{HTML}{56636E}
+\newcommand{\ev}{\textcolor{accent}{\textsc{evidence}}}
+\newcommand{\as}{\textcolor{assume}{\textsc{assumption}}}
+\newcommand{\code}[1]{\texttt{#1}}
+
+\titleformat{\section}{\large\bfseries\color{accent}}{\thesection}{0.6em}{}
+\titleformat{\subsection}{\normalsize\bfseries}{\thesubsection}{0.6em}{}
+\setlist{itemsep=2pt,topsep=4pt}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{6pt}
+\renewcommand{\arraystretch}{1.25}
+\newcolumntype{L}{>{\raggedright\arraybackslash}X}
+
+\begin{document}
+
+{\color{muted}\small Case study \textbullet{} AI Agent Builder \textbullet{} Heidi Systems}\\[2pt]
+{\LARGE\bfseries Berlin Hausverwaltung Leads}\\[4pt]
+{\color{muted} Sources, KPIs, automation and validation \textbullet{} 7 November 2026}
+
+\medskip
+An automated pipeline that finds Berlin property management companies, has an AI agent read
+each company's website, checks every claim the agent makes against the page it came from, and
+scores the companies as leads for a metering service.
+
+\begin{center}
+\begin{tabular}{cccc}
+\toprule
+\textbf{2,080} & \textbf{1,563} & \textbf{96\%} & \textbf{\$2.93} \\
+Berlin companies & websites researched & claims confirmed on page & total AI cost \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textbf{Deliverable:} \code{heidi\_leads\_berlin.xlsx} (tabs: Leads, KPI definitions, Run log).
+\textbf{Code:} \url{\repourl}
+
+%--------------------------------------------------------------------
+\section{How the KPIs were chosen}
+
+I didn't start from whatever data was easy to find. I fixed the method first, then derived the
+KPIs from it, so every column in the sheet can be traced back to a question and a source.
+
+\begin{enumerate}
+  \item \textbf{Goal-Question-Metric} \cite{gqm}: one goal, five questions, one measurable KPI
+        per question.
+  \item \textbf{SMART check} \cite{smart}: a KPI that can't be measured or found gets demoted to
+        an info column.
+  \item \textbf{Three tests}: does it correlate with deal value, does it vary across companies,
+        and can the data actually be found?
+  \item \textbf{Weighted score}: tier weights 3\,/\,2\,/\,1, each KPI scored 0--5.
+\end{enumerate}
+
+\textbf{Goal:} find the Berlin Hausverwaltungen that are the most valuable and most winnable
+customers for a metering service.
+
+\begin{tabularx}{\linewidth}{@{}L L l@{}}
+\toprule
+\textbf{Question} & \textbf{KPI that answers it} & \textbf{Type} \\
+\midrule
+Q1 How much metering volume could they bring? & Units managed & Firmographic \\
+Q2 Is their portfolio covered by HeizkostenV billing? & Residential share & Firmographic \\
+Q3 Who signs the metering contract, and how easily can it be won? & Buyer type; association
+  membership as a bonus & Firmographic / behavioral \\
+Q4 How easily could they switch to Heidi? & Uses software Heidi integrates with & Technographic \\
+Q5 Is there a reason to act now? & Not scored: the 31 Dec 2026 remote-reading deadline applies to
+  the whole market (E9) & Info column \\
+\bottomrule
+\end{tabularx}
+
+\subsection{The scored KPIs}
+
+Every scoring choice is labelled \ev{} (with a source) or \as{} (not yet proven).
+
+\begin{tabularx}{\linewidth}{@{}p{2.6cm} p{1.9cm} L L@{}}
+\toprule
+\textbf{KPI} & \textbf{Tier} & \textbf{Scale (0--5)} & \textbf{Why} \\
+\midrule
+Units managed & Critical $\times$3 & Five bands from published values: $<$800, 800--1.4k,
+  1.4k--3k, 3k--6.6k, $>$6.6k & \ev{} Heidi prices per unit per year, so revenue scales with
+  units (E1) \\
+Residential share & Important $\times$2 & Mainly residential 5, mixed 3, mainly commercial 1 &
+  \as{} Residential portfolios hold more buildings that need heating-cost billing. This is a
+  proxy: the HeizkostenV also covers commercial buildings \\
+Buyer type & Important $\times$2 & Rental manager 5; WEG or mixed manager 4; cooperative or own
+  portfolio 3; municipal 2 & \ev{} A rental manager can sign for the owner (E4). In a WEG the
+  owners vote on the provider (\S\,19 WEG, E3). Municipal companies run metering in-house
+  (E6, E7, confirmed again in this run) \\
+Heidi-compatible software & Useful $\times$1 & Domus, Immoware24, Wodis, Immocloud 5; other
+  software 2 & \ev{} Heidi's integration list (E2); \as{} that integration raises the win rate \\
+Association (VDIV, IVD, BVI) & Bonus +3 & Only adds points & \as{} A sign of a professional
+  company and a possible sales channel \\
+Growth signal & Bonus +3 & Only adds points & \as{} A growing portfolio means more units \\
+\bottomrule
+\end{tabularx}
+
+\[
+\text{Base} = \frac{\sum (\text{weight} \times \text{sub-score})}{\sum \text{weight of
+\emph{known} KPIs}} \in [0,5]
+\qquad
+\text{Lead score} = \text{Base} \times 18.8 + \text{bonus} \in [0,100]
+\]
+
+\begin{itemize}
+  \item \textbf{Unknown is not zero.} A KPI the website doesn't mention is left out of the
+        average instead of counting as 0. Otherwise small companies with detailed websites would
+        rank above large ones that publish little. A \emph{Data completeness} column shows how
+        much of the weight is known.
+  \item \textbf{Confidence flag.} Confidence is \emph{Low} when less than half of the weight is
+        known or the company size is unknown.
+  \item \textbf{No double counting.} Units, buildings and employees all measure size, so only
+        units are scored. Employees and buildings are used to \emph{estimate} units when a company
+        doesn't publish them. The ratio comes from our own data: 150 units per employee
+        ($n=64$) and 29 units per building ($n=38$). Estimates are marked \emph{estimated} in
+        the sheet.
+  \item \textbf{Lead quality and reachability are kept apart.} Whether we found a contact person
+        says nothing about how good a customer the company would be. \emph{Contact status} is
+        its own column and doesn't affect the score.
+\end{itemize}
+
+\subsection{Sources behind the decisions}
+
+\begin{tabularx}{\linewidth}{@{}l L p{4.4cm}@{}}
+\toprule
+\textbf{\#} & \textbf{Finding} & \textbf{Source} \\
+\midrule
+E1 & Heidi prices per housing unit per year & \href{https://heidisystems.com/blog/messdienstleister}{heidisystems.com blog} \\
+E2 & Heidi integrates with Domus, Immoware24, Wodis Sigma, Immocloud & heidisystems.com blog \\
+E3 & In a WEG the owners choose the metering provider by resolution, usually on the manager's
+     proposal. The legal basis is \S\,19 WEG since the 2020 reform (Heidi's blog still cites
+     \S\,21) & \href{https://www.buzer.de/19_WEG.htm}{\S\,19 WEG}, heidisystems.com blog \\
+E4 & For rental property, the landlord decides, or the manager if authorised & heidisystems.com blog \\
+E5 & Many metering contracts run for up to 10 years & heidisystems.com blog \\
+E6--E7 & WBM and HOWOGE run metering through their own subsidiaries & WBM job ad (Oct 2026);
+         HOWOGE tender 1333040 \\
+E9 & Meters that can't be read remotely must be replaced by 31 Dec 2026. After that, monthly
+     consumption information is mandatory & HeizkostenV \S\,5, \S\,6a \\
+E10 & If they aren't replaced, tenants may cut their heating-cost share by 3\% & HeizkostenV \S\,12 \\
+E12 & VDIV publishes no member list, so membership has to come from each company's website &
+      vdiv.de/verwaltersuche \\
+\bottomrule
+\end{tabularx}
+
+%--------------------------------------------------------------------
+\section{Sources and tools}
+
+\begin{tabularx}{\linewidth}{@{}p{3.6cm} L@{}}
+\toprule
+\textbf{Source / tool} & \textbf{Used for} \\
+\midrule
+Google Places API (New) & Finding companies. Berlin is split into map cells, and a cell is
+  split further whenever a search hits the 60-result limit. The search itself uses free ID-only
+  requests; website and phone are requested only where needed (157 billed requests, inside the
+  free tier) \\
+OpenStreetMap (Overpass) & A second source for companies (\code{office=property\_management}) \\
+Company websites & Every stored fact comes from the company's own pages: home, Impressum,
+  about, services, team, careers \\
+Claude Haiku 5.5 & The research agent (Anthropic API) \\
+Python & requests and tenacity (retries), BeautifulSoup (HTML), RapidFuzz (quote matching),
+  pydantic (schema), openpyxl (Excel), pytest and ruff \\
+\bottomrule
+\end{tabularx}
+
+%--------------------------------------------------------------------
+\section{Automation: the pipeline and the agent}
+
+The rule I followed: \textbf{the AI is used where judgement is needed, and code where the answer
+must be exact.} The AI reads websites and extracts facts. It never calculates a score. One
+command runs the whole pipeline with no manual steps: \code{python -m pipeline.main all}.
+
+\begin{enumerate}
+  \item \textbf{Collect} (code): Google Places and OpenStreetMap.
+  \item \textbf{Merge} (code): duplicates merged by website domain, then by normalised name.
+  \item \textbf{Fetch} (code): up to 6 pages per site; robots.txt respected.
+  \item \textbf{Research} (AI): the agent reads the pages, may fetch up to 4 more on the same
+        site, and submits each fact with its source URL and a word-for-word quote.
+  \item \textbf{Verify} (code): every quote is checked against the page text. If it fails, the
+        value becomes unknown.
+  \item \textbf{Score and export} (code): the formula above, written to Excel.
+\end{enumerate}
+
+\subsection{What matters about the agent}
+\begin{itemize}
+  \item \textbf{Evidence or unknown.} Every value needs a URL and a word-for-word quote. Without
+        one, the agent has to answer ``unknown''.
+  \item \textbf{Checked by code, not trusted.} The code compares each quote with the page text and
+        checks that numbers actually appear in the quote.
+  \item \textbf{Two tools only.} \code{fetch\_page} (pages on the same company site only) and
+        \code{submit\_record} (a strict schema; invalid answers are sent back once for correction).
+  \item \textbf{Cheap by design.} Our code fetches the pages itself instead of using a paid web
+        search, and prompt caching makes the long instructions almost free after the first
+        company. The result is about \$0.002 per company.
+\end{itemize}
+
+\subsection{Guardrails}
+\begin{itemize}
+  \item \textbf{Budget:} a hard stop at \$4 total and \$0.05 per company, based on costs
+        written to an append-only spend ledger.
+  \item \textbf{Quality gate:} after 25 companies the run checks its own failure rate,
+        verification rate and cost, and stops itself if any is out of range.
+  \item \textbf{Restartable:} each company is saved as soon as it's done, and a restart skips it.
+        One failing company never stops the run.
+  \item \textbf{Polite crawling:} robots.txt is respected, requests are spaced out, and blocked
+        sites are skipped, never worked around.
+\end{itemize}
+
+%--------------------------------------------------------------------
+\section{Validation}
+
+\begin{tabularx}{\linewidth}{@{}L l@{}}
+\toprule
+\textbf{Check} & \textbf{Result} \\
+\midrule
+Agent claims confirmed on the cited page & 3,945 / 4,127 (96\%) \\
+Named contacts confirmed on the cited page & 1,601 / 1,686 (95\%) \\
+Quality gate after 25 companies & passed: 0\% failures, 97\% verified \\
+Accuracy against 10 hand-checked companies (Haiku) & \textcolor{assume}{pending} \\
+Haiku vs Sonnet on 5 of those companies & \textcolor{assume}{pending} \\
+\bottomrule
+\end{tabularx}
+
+The verification rate shows the agent doesn't invent quotes. The hand-checked test measures
+something different: whether it finds the right facts and doesn't miss any. For that test, I
+checked 10 companies' websites by hand without looking at the agent's answers, and the code
+compares the two field by field.
+
+%--------------------------------------------------------------------
+\section{Results}
+
+\begin{tabularx}{\linewidth}{@{}L r@{}}
+\toprule
+\textbf{In the sheet} & \textbf{Companies} \\
+\midrule
+Scored with confidence OK & 242 \\
+Scored with confidence Low (size or most KPIs unknown) & 904 \\
+Excluded: not a property manager (brokers, caretakers, law firms) & 417 \\
+Site dead, blocked or disallowed by robots.txt & 219 \\
+No website of their own, so not researched (kept with phone and address) & 517 \\
+Named contact person & 1,098 \\
+Named contact with a personal email & 88 \\
+General company email & 1,070 \\
+\bottomrule
+\end{tabularx}
+
+\subsection{What the data showed}
+\begin{itemize}
+  \item \textbf{Size is rarely published.} Only 178 researched companies state their units
+        (median 2,000). Another 112 could be estimated from employees or buildings.
+  \item \textbf{About a quarter of Google's ``property management'' results aren't
+        Hausverwaltungen.} The agent marked 417 as brokers, caretakers and similar businesses,
+        and they're excluded instead of scored.
+  \item \textbf{Decision-maker emails are scarce.} Most sites name a managing director in the
+        Impressum but only give a general office address. Personal emails turned up for 88
+        contacts.
+  \item \textbf{Municipal companies run their own metering.} The agent found that degewo and
+        STADT UND LAND use their own subsidiaries, which supports scoring municipal companies low.
+  \item \textbf{Software and metering providers are rarely mentioned.} 82 companies name their
+        software, and at least 11 of them use Domus or Immoware24. Only 7 name their metering
+        provider.
+  \item \textbf{Associations:} 120 companies show a membership, mostly IVD and VDIV.
+\end{itemize}
+
+%--------------------------------------------------------------------
+\section{Repository, structure and running}
+
+Code: \url{\repourl}. Setup and every command are also in the repository's README.
+
+\subsection{Project structure}
+\begin{Verbatim}[fontsize=\small]
+pipeline/
+  main.py            one entry point; runs the steps in order
+  config.py          every number: models, weights, budgets, limits
+  models.py          one schema: Company, Fact (value+status+source+quote)
+  collectors/        google_places.py, osm.py  (each returns list[Company])
+  dedupe.py          merges duplicates; independent of input order
+  fetching/          robots.txt, safe redirects, HTML to text, page cache
+  agent/             research_agent.py, prompt, tools, schema, cost, ledger
+  research_step.py   order, budget stop, quality gate
+  checkpoint.py      saves each company; skipped on restart
+  verify.py          re-checks every quote on its page
+  scoring.py         the lead score (pure functions)
+  evaluation.py      accuracy against hand-checked answers
+  export/            Excel (Google Sheets optional)
+  utils/             HTTP with retries, URL normalising, file I/O, logging
+tests/               247 pytest tests
+\end{Verbatim}
+
+\subsection{Running}
+\begin{Verbatim}[fontsize=\small]
+py -m venv .venv
+.venv\Scripts\pip install -r requirements.txt
+copy .env.example .env          (then add the API keys)
+
+.venv\Scripts\python -m pipeline.main all        whole pipeline
+.venv\Scripts\python -m pipeline.main research --limit 50
+.venv\Scripts\python -m pipeline.main export     rebuild the Excel file
+.venv\Scripts\python -m pipeline.main evaluate   accuracy test
+.venv\Scripts\python -m pytest                   tests
+\end{Verbatim}
+
+%--------------------------------------------------------------------
+\section{Limits and open assumptions}
+\begin{itemize}
+  \item Residential share, the cooperative and private-landlord scores, and both bonus signals
+        are assumptions. They should be checked against Heidi's real win data.
+  \item LinkedIn wasn't searched. It needs search tools or accounts and would break LinkedIn's
+        terms, so contacts come only from company websites.
+  \item Google Places was used to find companies. Stored facts come from the companies' own
+        websites, which fits Google's storage rules.
+  \item Companies without their own website stay in the list unresearched. They could be covered
+        next with directory pages or a phone call.
+\end{itemize}
+
+\begin{thebibliography}{9}
+\bibitem{gqm} V.\,R.~Basili, G.~Caldiera, H.\,D.~Rombach. \emph{The Goal Question Metric
+  Approach}. Encyclopedia of Software Engineering, Wiley, 1994.
+\bibitem{smart} G.\,T.~Doran. \emph{There's a S.M.A.R.T. way to write management's goals and
+  objectives}. Management Review 70(11), 1981.
+\end{thebibliography}
+
+\end{document}
