@@ -19,7 +19,8 @@ from pipeline.collectors.osm import collect_osm
 from pipeline.dedupe import merge_companies
 from pipeline.evaluation import compare, read_truth, write_template
 from pipeline.export.excel import write_workbook
-from pipeline.export.table import KPI_DEFINITIONS, lead_rows, run_log_rows
+from pipeline.export.google_sheets import sheets_configured, write_google_sheet
+from pipeline.export.table import KPI_DEFINITIONS, LEAD_COLUMNS, lead_rows, run_log_rows
 from pipeline.fetching.fetcher import PageFetcher
 from pipeline.fetching.page_store import PageStore
 from pipeline.fetching.robots import RobotsPolicy
@@ -147,9 +148,18 @@ def run_export(args: argparse.Namespace) -> None:
     companies = load_companies(VERIFIED_FILE)
     scores, model = score_all(companies)
     run_log = run_log_rows(companies, scores, model, datetime.now())
-    write_workbook(config.OUTPUT_XLSX, lead_rows(companies, scores), KPI_DEFINITIONS, run_log)
+    leads = lead_rows(companies, scores)
+    write_workbook(config.OUTPUT_XLSX, leads, KPI_DEFINITIONS, run_log)
     scored = sum(s.lead_score is not None for s in scores)
     log.info("Exported %d companies (%d scored) to %s", len(companies), scored, config.OUTPUT_XLSX)
+    if not sheets_configured():
+        log.info("Google Sheet not configured (GOOGLE_SHEET_ID, GOOGLE_SERVICE_ACCOUNT_FILE)")
+        return
+    tabs = {"Leads": [LEAD_COLUMNS, *leads], "KPI definitions": KPI_DEFINITIONS, "Run log": run_log}
+    try:
+        log.info("Google Sheet updated: %s", write_google_sheet(tabs))
+    except Exception:
+        log.exception("Google Sheet export failed; the Excel file is complete")
 
 
 def run_eval_template(args: argparse.Namespace) -> None:
