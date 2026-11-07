@@ -114,6 +114,8 @@ AGENT_MAX_TURNS = 6  # API calls per company, including corrected resubmissions
 AGENT_MAX_FETCHES_PER_COMPANY = 4  # pages the agent may request beyond the prefetched ones
 AGENT_MAX_SUBMIT_CORRECTIONS = 1  # then invalid claims are nulled and the rest is kept
 AGENT_MAX_COST_PER_COMPANY_USD = 0.05  # Haiku expected ~$0.003/company; stops runaway loops
+# Sonnet costs ~20x Haiku per token: one turn is already ~$0.05, so it needs its own cap.
+AGENT_MAX_COST_PER_COMPANY_BY_MODEL = {"claude-sonnet-5-5": 0.30}
 AGENT_RUN_BUDGET_USD = 4.00  # all Anthropic spend in the ledger, kept below the €5 credit
 SPEND_LEDGER = DATA_DIR / "anthropic_spend.jsonl"
 # Automatic quality gate (RULEBOOK → Automation principle): checked once per run after this many

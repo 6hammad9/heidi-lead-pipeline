@@ -85,7 +85,15 @@ def run_research_step(args: argparse.Namespace) -> None:
     pages = PageStore(config.PAGES_DIR)
     fetcher = PageFetcher(http, pages, RobotsPolicy(http))
     ledger = SpendLedger(config.SPEND_LEDGER)
-    agent = ResearchAgent(anthropic.Anthropic(), args.model, fetcher, ledger, effort=args.effort)
+    max_cost = max_cost_per_company(args.model)
+    agent = ResearchAgent(
+        anthropic.Anthropic(),
+        args.model,
+        fetcher,
+        ledger,
+        effort=args.effort,
+        max_cost_usd=max_cost,
+    )
     companies = load_companies(MERGED_FILE)
     summary = run_research(
         companies,
@@ -93,12 +101,17 @@ def run_research_step(args: argparse.Namespace) -> None:
         CheckpointStore(config.RESEARCH_DIR, args.model),
         ledger,
         budget_usd=config.AGENT_RUN_BUDGET_USD,
-        reserve_per_company_usd=config.AGENT_MAX_COST_PER_COMPANY_USD,
+        reserve_per_company_usd=max_cost,
         limit=args.limit,
         only_ids=read_ids(args.ids) if args.ids else None,
         gate=make_gate(companies, pages),
     )
     log.info("Research summary: %s", summary.model_dump_json())
+
+
+def max_cost_per_company(model: str) -> float:
+    by_model = config.AGENT_MAX_COST_PER_COMPANY_BY_MODEL
+    return by_model.get(model, config.AGENT_MAX_COST_PER_COMPANY_USD)
 
 
 def make_gate(companies: list[Company], pages: PageStore) -> Gate:
@@ -179,6 +192,10 @@ def run_evaluate(args: argparse.Namespace) -> None:
     records = CheckpointStore(config.RESEARCH_DIR, args.model).load_all()
     companies, _ = build_verified(load_companies(MERGED_FILE), records, PageStore(config.PAGES_DIR))
     truth = read_truth(EVAL_TEMPLATE)
+    wanted = read_ids(args.ids) if args.ids else set(truth)
+    researched = {r.company_id for r in records}
+    # A company this model never researched would count as all-unknown, not as its accuracy.
+    truth = {cid: row for cid, row in truth.items() if cid in wanted and cid in researched}
     results = compare(truth, companies)
     correct, total = sum(r.correct for r in results), sum(r.total for r in results)
     share = 100 * correct / total if total else 0
@@ -224,7 +241,9 @@ def main() -> None:
         type=int,
         help=f"companies per research run (research: {config.BATCH_SIZE}, all: no limit)",
     )
-    parser.add_argument("--ids", type=Path, help="file of company ids to research (one per line)")
+    parser.add_argument(
+        "--ids", type=Path, help="research/evaluate: file of company ids (one per line)"
+    )
     parser.add_argument("--refresh", action="store_true", help="all: collect sources again")
     args = parser.parse_args()
     if args.limit is None and args.step == "research":
