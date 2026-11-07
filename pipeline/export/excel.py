@@ -51,9 +51,9 @@ def _leads_sheet(ws: Worksheet, rows: list[list[object]]) -> None:
             end_color="63BE7B",
         ),
     )
+    # Evidence is not wrapped: wrapping made every row as tall as all its quotes. One line per
+    # company keeps the list scannable; the full text shows in the formula bar.
     _link_websites(ws, LEAD_COLUMNS.index("Website") + 1)
-    for cell in ws[get_column_letter(LEAD_COLUMNS.index("Evidence") + 1)][1:]:
-        cell.alignment = Alignment(wrap_text=True, vertical="top")
 
 
 def _link_websites(ws: Worksheet, column: int) -> None:
