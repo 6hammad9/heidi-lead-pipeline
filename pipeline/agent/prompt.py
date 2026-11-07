@@ -68,9 +68,12 @@ You get the text of pages from the company's own website. Record what those page
 - contacts: up to 3 named people who would decide on a metering service: managing directors
   (Geschäftsführer/in, Inhaber/in, Vorstand), heads of property management, of operating or
   heating cost billing (Betriebskosten-, Heizkostenabrechnung) or of the technical department.
-  The Impressum and team pages usually name them. `email` only when that exact address is
-  shown on the page (never construct one); `linkedin` only when a LinkedIn profile link is on
-  the page. `source_url` and `quote` are required: the quote shows the name and role.
+  The Impressum and team pages usually name them. `email`: the person's own address when the
+  page shows one that clearly belongs to them (in their entry, or a name-based address at the
+  company's domain such as anna.mueller@ or a.mueller@); copy it exactly and never construct
+  one. Generic addresses (info@, kontakt@, verwaltung@) are not a person's email. `linkedin`
+  only when a LinkedIn profile link is on the page. `source_url` and `quote` are required: the
+  quote shows the name and role.
 - notes: one short sentence on anything uncertain, otherwise null.
 
 # Process
